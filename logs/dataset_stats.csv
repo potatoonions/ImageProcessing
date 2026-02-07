@@ -1,0 +1,10 @@
+glove_type,defect_type,count
+cloth gloves,Hole,8
+cloth gloves,Normal,66
+cloth gloves,Stain,4
+Nitrile gloves,Hole,0
+Nitrile gloves,Normal,663
+Nitrile gloves,Stain,0
+Rubber gloves,Hole,149
+Rubber gloves,Normal,130
+Rubber gloves,Stain,332
