@@ -112,7 +112,7 @@ end
 T = cell2table(statsRows,"VariableNames",["glove_type","defect_type","count"]);
 writetable(T, fullfile(OUT_LOGS,"dataset_stats.csv"));
 
-disp("✅ Member 1 preprocessing completed.");
+disp("Member 1 preprocessing completed.");
 end
 
 %% ---------------- HELPER FUNCTIONS ----------------
