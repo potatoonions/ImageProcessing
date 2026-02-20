@@ -1,0 +1,28 @@
+MEMBER 1 - HOLE DETECTION COMPREHENSIVE TEST
+=============================================
+
+Methodology:
+- Thresholding: Grayscale < 100 identifies potential holes
+- Morphology: Opening (noise removal) + Closing (gap filling)
+- Size constraints: 50-5000 pixels
+- Features extracted: Area, Perimeter, Solidity, Eccentricity, Intensity stats
+
+Results Summary:
+
+cloth gloves:
+  - Images processed: 8
+  - Total holes detected: 11
+  - Avg per image: 1.38
+  - Avg hole size: 1170.5 pixels
+
+Nitrile gloves:
+  - Images processed: 12
+  - Total holes detected: 65
+  - Avg per image: 5.42
+  - Avg hole size: 1030.9 pixels
+
+Rubber gloves:
+  - Images processed: 149
+  - Total holes detected: 16
+  - Avg per image: 0.11
+  - Avg hole size: 232.4 pixels
