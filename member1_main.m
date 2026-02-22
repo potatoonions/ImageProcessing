@@ -18,12 +18,6 @@ function member1_main
 
 clc; clear;
 
-disp("╔═══════════════════════════════════════════════════════════════╗");
-disp("║          MEMBER 1 - IMAGE PROCESSING PIPELINE                 ║");
-disp("║         Preprocessing & Hole Detection System                 ║");
-disp("║         CS(AI) Intake - CT036-3-IPPR                          ║");
-disp("╚═══════════════════════════════════════════════════════════════╝");
-disp(" ");
 
 %% ========== STEP 1: IMAGE PREPROCESSING ==========
 disp("STEP 1: Image Preprocessing");
@@ -85,10 +79,6 @@ catch ME
 end
 
 %% ========== FINAL SUMMARY ==========
-disp("╔═══════════════════════════════════════════════════════════════╗");
-disp("║                  MEMBER 1 WORK COMPLETED                       ║");
-disp("╚═══════════════════════════════════════════════════════════════╝");
-disp(" ");
 
 disp("Output Files & Directories:");
 disp("  • processed/");
