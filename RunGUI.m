@@ -8,7 +8,7 @@
 %   - Display detailed metrics
 %   - Support for Cloth, Nitrile, and Rubber gloves
 
-clear; clc; close all;
+clear functions; clear all; clc; close all; rehash;
 
 fprintf('\n========================================\n');
 fprintf('  Glove Defect Detection GUI\n');
