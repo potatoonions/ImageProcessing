@@ -1,11 +1,11 @@
 function member1_main
 % MEMBER 1 - COMPLETE IMAGE PROCESSING PIPELINE
-% Data Collection, Preprocessing & Hole Detection
+% Cloth Glove Defect Detection: Holes, Stains & Snags
 %
 % This script executes the complete Member 1 workflow:
 %   1. Image preprocessing (resizing, filtering, normalization)
-%   2. Hole detection using thresholding + morphological operations
-%   3. Feature extraction for holes
+%   2. Defect detection for Holes, Stains, and Snags using thresholding + morphological operations
+%   3. Feature extraction for all defect types
 %   4. Comprehensive validation testing
 %
 % Based on:
@@ -23,10 +23,10 @@ clc; clear;
 disp("STEP 1: Image Preprocessing");
 disp("==========================");
 disp("Processing images through the preprocessing pipeline:");
-disp("  • Image resizing to 256x256");
-disp("  • Color space conversion (RGB → Grayscale + HSV)");
-disp("  • Noise reduction (Gaussian + Median filtering)");
-disp("  • Background removal via HSV saturation thresholding");
+disp("  - Image resizing to 256x256");
+disp("  - Color space conversion (RGB → Grayscale + HSV)");
+disp("  - Noise reduction (Gaussian + Median filtering)");
+disp("  - Background removal via HSV saturation thresholding");
 disp(" ");
 
 try
@@ -43,10 +43,10 @@ end
 disp("STEP 2: Hole Detection & Feature Extraction");
 disp("==========================================");
 disp("Detecting holes using advanced image analysis:");
-disp("  • Thresholding: Identifying dark regions (intensity < 100)");
-disp("  • Morphological operations: Noise removal + gap filling");
-disp("  • Size filtering: Keeping only valid holes (50-5000 px)");
-disp("  • Feature extraction: Geometric + intensity statistics");
+disp("  - Thresholding: Identifying dark regions (intensity < 100)");
+disp("  - Morphological operations: Noise removal + gap filling");
+disp("  - Size filtering: Keeping only valid holes (50-5000 px)");
+disp("  - Feature extraction: Geometric + intensity statistics");
 disp(" ");
 
 try
@@ -63,9 +63,9 @@ end
 disp("STEP 3: Testing & Validation");
 disp("============================");
 disp("Running comprehensive validation suite:");
-disp("  • Detection metrics (holes per image, area statistics)");
-disp("  • Feature distribution analysis");
-disp("  • Robustness testing (brightness variations)");
+disp("  - Detection metrics (holes per image, area statistics)");
+disp("  - Feature distribution analysis");
+disp("  - Robustness testing (brightness variations)");
 disp(" ");
 
 try
@@ -81,13 +81,13 @@ end
 %% ========== FINAL SUMMARY ==========
 
 disp("Output Files & Directories:");
-disp("  • processed/");
+disp("  - processed/");
 disp("    └─ Preprocessed images (8 subdirectories)");
-disp("  • logs/hole_detection_results/");
+disp("  - logs/hole_detection_results/");
 disp("    └─ Hole detection visualizations & statistics");
-disp("  • logs/hole_detection_tests/");
+disp("  - logs/hole_detection_tests/");
 disp("    └─ Comprehensive test results & validation");
-disp("  • logs/dataset_stats.csv");
+disp("  - logs/dataset_stats.csv");
 disp("    └─ Dataset statistics summary");
 
 disp(" ");
@@ -101,12 +101,12 @@ disp("  ✓ Feature extraction results");
 disp(" ");
 
 disp("Report Sections Ready:");
-disp("  • Data Collection & Organization");
-disp("  • Preprocessing Methodology");
-disp("  • Color Space & Filtering Justification");
-disp("  • Hole Detection Algorithm (Thresholding + Morphology)");
-disp("  • Experimental Results & Performance Metrics");
-disp("  • Critical Analysis & Future Improvements");
+disp("  - Data Collection & Organization");
+disp("  - Preprocessing Methodology");
+disp("  - Color Space & Filtering Justification");
+disp("  - Hole Detection Algorithm (Thresholding + Morphology)");
+disp("  - Experimental Results & Performance Metrics");
+disp("  - Critical Analysis & Future Improvements");
 disp(" ");
 
 disp("Next Steps for Team:");

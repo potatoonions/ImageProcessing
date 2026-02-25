@@ -22,7 +22,7 @@ MIN_HOLE_AREA = 50;          % Minimum hole area (pixels)
 MAX_HOLE_AREA = 5000;        % Maximum hole area (to avoid false positives)
 MORPH_RADIUS = 3;            % Morphological structuring element radius
 
-GLOVE_TYPES = ["cloth gloves", "Nitrile gloves", "Rubber gloves"];
+GLOVE_TYPES = ["cloth gloves"];
 IMG_EXTS = [".png"];
 
 if ~isfolder(OUT_RESULTS), mkdir(OUT_RESULTS); end

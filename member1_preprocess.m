@@ -7,8 +7,8 @@ clc; clear;
 %% ---------------- CONFIG ----------------
 DATASET_DIR = fullfile(pwd, "gloves_dataset");
 
-GLOVE_TYPES  = ["cloth gloves", "Nitrile gloves", "Rubber gloves"];
-DEFECT_TYPES = ["Hole", "Normal", "Stain"];
+GLOVE_TYPES  = ["cloth gloves"];
+DEFECT_TYPES = ["Hole", "Stains", "Snags"];
 
 OUT_PROC = fullfile(pwd, "processed");
 OUT_LOGS = fullfile(pwd, "logs");
