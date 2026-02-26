@@ -234,60 +234,81 @@ try
     gray = appData.grayImage;
     gloveMask = appData.morphology;  % Binary glove outline
     
-    % Detect defects ONLY within glove region
-    holePixels = (gray < 100) & gloveMask;
-    snagPixels = ((gray >= 70) & (gray <= 120)) & gloveMask;  % Narrower range for snags
-    stainPixels = ((gray >= 130) & (gray <= 200)) & gloveMask;  % Higher range for stains
+    % STEP 1: Identify main color/intensity of the glove
+    glovePixels = gray(gloveMask);
+    mainIntensity = mean(glovePixels);
+    intensityStd = std(double(glovePixels));
     
-    holeCounts = sum(holePixels(:));
-    snagCounts = sum(snagPixels(:));
-    stainCounts = sum(stainPixels(:));
+    % STEP 2: Find glove contour
+    gloveContour = bwboundaries(gloveMask);
+    if isempty(gloveContour)
+        error('Could not find glove contour');
+    end
+    gloveContourPoly = gloveContour{1};  % Main contour
     
-    % Classify based on defect counts inside glove
-    if holeCounts > snagCounts && holeCounts > stainCounts && holeCounts > 300
-        classification = 'DEFECT: Holes Detected';
-        defectMap = holePixels;
-    elseif snagCounts > holeCounts && snagCounts > stainCounts && snagCounts > 300
-        classification = 'DEFECT: Snags Detected';
-        defectMap = snagPixels;
-    elseif stainCounts > holeCounts && stainCounts > snagCounts && stainCounts > 300
-        classification = 'DEFECT: Stains Detected';
-        defectMap = stainPixels;
+    % STEP 3: Create detection regions
+    dilatedMask = imdilate(gloveMask, strel('disk', 5));
+    erodedMask = imerode(gloveMask, strel('disk', 2));
+    contourRegion = dilatedMask & ~erodedMask;
+    
+    % STEP 4: Detect potential defects
+    holePixels = (gray < (mainIntensity - 30)) & contourRegion;
+    snagPixels = ((gray >= (mainIntensity - 50)) & (gray <= (mainIntensity - 10))) & contourRegion;
+    stainPixels = ((gray >= (mainIntensity + 10)) & (gray <= (mainIntensity + 50))) & contourRegion;
+    
+    % STEP 5: Analyze defects with contour analysis and filtering
+    [holes, holeCount] = analyzeDefects(holePixels, gloveContourPoly, 'hole', 400, 2);
+    [snags, snagCount] = analyzeDefects(snagPixels, gloveContourPoly, 'snag', 150, 2.25);
+    [stains, stainCount] = analyzeDefects(stainPixels, gloveContourPoly, 'stain', 150, 2.25);
+    
+    % STEP 6: Classify based on filtered results
+    defects = [holes; snags; stains];
+    
+    if holeCount > 0 && holeCount >= snagCount && holeCount >= stainCount
+        classification = sprintf('DEFECT: Holes (%d detected)', holeCount);
+        defectType = 'hole';
+    elseif snagCount > 0 && snagCount > holeCount && snagCount >= stainCount
+        classification = sprintf('DEFECT: Snags (%d detected)', snagCount);
+        defectType = 'snag';
+    elseif stainCount > 0 && stainCount > holeCount && stainCount > snagCount
+        classification = sprintf('DEFECT: Stains (%d detected)', stainCount);
+        defectType = 'stain';
     else
         classification = 'NORMAL: No Major Defects';
-        defectMap = false(size(gray));
+        defectType = 'none';
     end
     
-    % Show result with red circles marking defects (only within glove)
+    % STEP 7: Visualize results
     imshow(gray, 'Parent', appData.resultAx);
     hold(appData.resultAx, 'on');
     
-    % Draw glove contour in light gray
-    bw_boundary = bwboundaries(gloveMask);
-    if ~isempty(bw_boundary)
-        for k = 1:length(bw_boundary)
-            boundary = bw_boundary{k};
-            plot(appData.resultAx, boundary(:,2), boundary(:,1), 'Color', [0.7 0.7 0.7], 'LineWidth', 2);
-        end
-    end
+    % Draw glove contour
+    plot(appData.resultAx, gloveContourPoly(:,2), gloveContourPoly(:,1), 'Color', [0.7 0.7 0.7], 'LineWidth', 2);
     
-    % Find connected components (defects) and draw red circles
-    cc = bwconncomp(defectMap);
-    for i = 1:min(cc.NumObjects, 25)
-        pixelIdxList = cc.PixelIdxList{i};
-        if numel(pixelIdxList) > 5  % Only draw if defect is significant
-            [rows, cols] = ind2sub(size(defectMap), pixelIdxList);
+    % Draw defects with labels
+    for i = 1:length(defects)
+        defect = defects(i);
+        if ~isempty(defect.box)
+            x = defect.box(1);
+            y = defect.box(2);
+            w = defect.box(3);
+            h = defect.box(4);
             
-            % Center and radius of defect
-            center_row = mean(rows);
-            center_col = mean(cols);
-            radius = sqrt(numel(pixelIdxList) / pi);
+            % Choose color based on type
+            if strcmp(defect.type, 'hole')
+                color = [1 0 0];  % Red
+            elseif strcmp(defect.type, 'snag')
+                color = [1 1 0];  % Yellow
+            else  % stain
+                color = [1 0 1];  % Magenta
+            end
             
-            % Draw red circle
-            theta = linspace(0, 2*pi, 50);
-            circle_x = center_col + radius * cos(theta);
-            circle_y = center_row + radius * sin(theta);
-            plot(appData.resultAx, circle_x, circle_y, 'r-', 'LineWidth', 3);
+            % Draw rectangle
+            rectangle(appData.resultAx, 'Position', [x, y, w, h], 'EdgeColor', color, 'LineWidth', 2);
+            
+            % Draw label
+            text(appData.resultAx, x + w/2, y - 5, defect.type, ...
+                'Color', color, 'HorizontalAlignment', 'center', 'FontSize', 9, 'FontWeight', 'bold');
         end
     end
     
@@ -297,7 +318,7 @@ try
     set(appData.displayPanel, 'Visible', 'off');
     set(appData.pipelinePanel, 'Visible', 'off');
     set(appData.resultsPanel, 'Visible', 'on');
-    set(appData.resultClassification, 'String', classification);
+    set(appData.resultClassification, 'String', sprintf('%s (Color: %d±%d)', classification, uint8(mainIntensity), uint8(intensityStd)));
     set(appData.showResultBtn, 'Visible', 'off');
     
     guidata(fig, appData);
@@ -305,6 +326,93 @@ try
 catch ME
     msgbox(['Error: ' ME.message], 'Error', 'error');
 end
+end
+
+function [defectsOut, count] = analyzeDefects(defectMap, gloveContour, defectType, minArea, maxAspectRatio)
+% Analyze defects using contour analysis similar to Python example
+    defectsOut = [];
+    count = 0;
+    
+    % Find connected components
+    cc = bwconncomp(defectMap);
+    
+    for i = 1:cc.NumObjects
+        pixelIdxList = cc.PixelIdxList{i};
+        area = numel(pixelIdxList);
+        
+        % Filter by minimum area
+        if area < minArea
+            continue;
+        end
+        
+        % Get bounding box
+        [rows, cols] = ind2sub(size(defectMap), pixelIdxList);
+        box = [min(cols), min(rows), max(cols) - min(cols), max(rows) - min(rows)];
+        
+        % Calculate aspect ratio
+        w = box(3);
+        h = box(4);
+        aspectRatio = w / h;
+        if aspectRatio < 1
+            aspectRatio = 1 / aspectRatio;
+        end
+        
+        % Filter by aspect ratio
+        if aspectRatio > maxAspectRatio
+            continue;
+        end
+        
+        % Check if center is within glove contour using point-in-polygon test
+        cx = box(1) + w/2;
+        cy = box(2) + h/2;
+        
+        [dist, ~] = point2curve([cy, cx], gloveContour);
+        isWithinGlove = dist <= 0;
+        
+        if ~isWithinGlove
+            continue;
+        end
+        
+        % Passed all filters - add to results
+        count = count + 1;
+        defect.type = defectType;
+        defect.box = box;
+        defect.area = area;
+        defect.aspectRatio = aspectRatio;
+        defectsOut = [defectsOut; defect];
+    end
+end
+
+function [distance, location] = point2curve(point, curve)
+% Simple point-to-boundary distance
+    distances = sqrt((curve(:,1) - point(1)).^2 + (curve(:,2) - point(2)).^2);
+    [distance, idx] = min(distances);
+    
+    % Determine if point is inside contour (simple approximation)
+    % Count crossings to estimate if inside
+    x = point(2);
+    y = point(1);
+    crossings = 0;
+    for j = 1:size(curve, 1)
+        next_j = mod(j, size(curve, 1)) + 1;
+        y1 = curve(j, 1);
+        y2 = curve(next_j, 1);
+        x1 = curve(j, 2);
+        x2 = curve(next_j, 2);
+        
+        if ((y1 <= y && y < y2) || (y2 <= y && y < y1))
+            xinters = x1 + (y - y1) * (x2 - x1) / (y2 - y1);
+            if x < xinters
+                crossings = crossings + 1;
+            end
+        end
+    end
+    
+    if mod(crossings, 2) == 1
+        distance = -distance;  % Inside = negative
+    end
+    
+    location = curve(idx, :);
 end
 
 function resetGUI(fig)
