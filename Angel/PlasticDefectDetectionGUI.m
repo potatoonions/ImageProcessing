@@ -144,7 +144,7 @@ try
         case 'burn'
             overlay = plasticDefectDetection(img);
             defectLabel = 'BURN';
-            defectColor = [1 0 0]; % Red
+            defectColor = [0.8 0 0]; % Dark Red
         case 'blood'
             overlay = plasticBloodDetection(img);
             defectLabel = 'BLOOD';
@@ -152,7 +152,7 @@ try
         case 'discoloration'
             overlay = plasticDiscolourationDetection(img);
             defectLabel = 'DISCOLORATION';
-            defectColor = [1 1 0]; % Yellow
+            defectColor = [0.8 0 0]; % Dark Red
         otherwise
             error('Unknown defect type');
     end
