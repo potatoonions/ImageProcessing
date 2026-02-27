@@ -14,9 +14,12 @@ fprintf('\n========================================\n');
 fprintf('  Glove Defect Detection GUI\n');
 fprintf('========================================\n\n');
 
-% Check if function exists
-if ~isfile('GloveDefectDetectionGUI.m')
-    error('GloveDefectDetectionGUI.m not found in current directory');
+% Add cloth_gloves_classification folder to path
+clothGlovesPath = fullfile(pwd, 'cloth_gloves_classification');
+if isfolder(clothGlovesPath)
+    addpath(clothGlovesPath);
+else
+    error('cloth_gloves_classification folder not found in current directory');
 end
 
 fprintf('Launching GUI application...\n\n');
