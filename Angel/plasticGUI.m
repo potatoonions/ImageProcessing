@@ -57,8 +57,30 @@ guidata(hFig,data);
         % display image and overlay
         imshow(data.img,'Parent',hAx);
         hold(hAx,'on');
-        him = imshow(ov,'Parent',hAx);
-        set(him,'AlphaData',double(ov(:,:,4))/255);
+        % ov is expected to be MxNx4 (RGBA). imshow requires RGB; set
+        % AlphaData separately. Handle missing/other formats robustly.
+        if isempty(ov)
+            hold(hAx,'off');
+            return;
+        end
+        if ndims(ov) == 3 && size(ov,3) == 4
+            overlayRGB = ov(:,:,1:3);
+            alphaData = double(ov(:,:,4))/255;
+        elseif ndims(ov) == 2
+            overlayRGB = cat(3,ov,ov,ov);
+            alphaData = ones(size(ov));
+        else
+            % already RGB or unexpected shape
+            overlayRGB = ov(:,:,1:min(end,3));
+            alphaData = ones(size(overlayRGB,1), size(overlayRGB,2));
+        end
+        him = imshow(overlayRGB,'Parent',hAx);
+        try
+            set(him,'AlphaData',alphaData);
+        catch
+            % some MATLAB versions may not accept AlphaData for certain
+            % image types; ignore silently.
+        end
         hold(hAx,'off');
     end
 
