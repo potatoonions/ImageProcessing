@@ -157,6 +157,8 @@ try
             error('Unknown defect type');
     end
     
+%test1
+
     % Display result
     imshow(img, 'Parent', appData.resultAx);
     hold(appData.resultAx, 'on');
