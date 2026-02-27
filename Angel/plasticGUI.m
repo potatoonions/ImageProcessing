@@ -8,13 +8,16 @@ fprintf('  (Polyethene Material)\n');
 fprintf('========================================\n\n');
 
 angelPath = pwd; % Current folder is Angel
+
+% Add Angel folder to path
 if isfolder(angelPath)
     addpath(angelPath);
 else
     error('Angel folder not found in current directory');
 end
 
-fprintf('Launching plastic glove GUI application...\n\n');
+fprintf('Launching plastic glove GUI application...\n');
+fprintf('Added path: %s\n\n', angelPath);
 
 try
     PlasticDefectDetectionGUI();
