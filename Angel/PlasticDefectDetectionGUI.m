@@ -5,6 +5,12 @@ function PlasticDefectDetectionGUI()
 persistent appData;
 if isempty(appData), appData = struct(); end
 
+% Ensure Angel folder is on path
+angelPath = fileparts(mfilename('fullpath'));
+if ~isempty(angelPath) && ~contains(path, angelPath)
+    addpath(angelPath);
+end
+
 fig = figure('Name', 'Plastic Glove Defect Detection', 'NumberTitle', 'off', ...
     'Position', [100 100 1000 800], 'Color', [0.94 0.94 0.94], ...
     'CloseRequestFcn', @(src, evt) closeApp());
@@ -58,12 +64,12 @@ appData.burnBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Detec
     'Visible', 'off', ...
     'Callback', @(src, evt) detectDefect(fig, 'burn'));
 
-appData.frostBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Detect Frosting', ...
+appData.bloodBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Detect Blood', ...
     'Units', 'normalized', 'Position', [0.48 0.30 0.12 0.60], ...
     'FontSize', 12, 'FontWeight', 'bold', ...
-    'BackgroundColor', [0.2 0.6 0.8], 'ForegroundColor', [1 1 1], ...
+    'BackgroundColor', [0.7 0.2 0.2], 'ForegroundColor', [1 1 1], ...
     'Visible', 'off', ...
-    'Callback', @(src, evt) detectDefect(fig, 'frosting'));
+    'Callback', @(src, evt) detectDefect(fig, 'blood'));
 
 appData.discolBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Detect Discoloration', ...
     'Units', 'normalized', 'Position', [0.63 0.30 0.15 0.60], ...
@@ -112,7 +118,7 @@ try
     set(appData.displayPanel, 'Visible', 'on');
     set(appData.resultsPanel, 'Visible', 'off');
     set(appData.burnBtn, 'Visible', 'on');
-    set(appData.frostBtn, 'Visible', 'on');
+    set(appData.bloodBtn, 'Visible', 'on');
     set(appData.discolBtn, 'Visible', 'on');
     
     guidata(fig, appData);
@@ -131,6 +137,7 @@ end
 
 try
     img = appData.currentImage;
+    overlay = [];
     
     % Call appropriate detector function
     switch defectType
@@ -138,10 +145,10 @@ try
             overlay = plasticDefectDetection(img);
             defectLabel = 'BURN';
             defectColor = [1 0 0]; % Red
-        case 'frosting'
-            overlay = plasticFrostingDetection(img);
-            defectLabel = 'FROSTING';
-            defectColor = [0 1 1]; % Cyan
+        case 'blood'
+            overlay = plasticBloodDetection(img);
+            defectLabel = 'BLOOD';
+            defectColor = [0.8 0 0]; % Dark Red
         case 'discoloration'
             overlay = plasticDiscolourationDetection(img);
             defectLabel = 'DISCOLORATION';
@@ -154,8 +161,8 @@ try
     imshow(img, 'Parent', appData.resultAx);
     hold(appData.resultAx, 'on');
     
-    % If overlay exists, display it
-    if ~isempty(overlay)
+    % If overlay exists and contains data, display it
+    if ~isempty(overlay) && any(overlay(:) > 0)
         if ndims(overlay) == 3 && size(overlay, 3) == 4
             overlayRGB = overlay(:, :, 1:3);
             alphaData = double(overlay(:, :, 4)) / 255;
@@ -173,17 +180,14 @@ try
         catch
             % AlphaData may not be supported in all MATLAB versions
         end
-    end
-    
-    hold(appData.resultAx, 'off');
-    
-    % Update classification
-    if ~isempty(overlay) && any(overlay(:) > 0)
         classification = sprintf('DEFECT DETECTED: %s', defectLabel);
     else
         classification = sprintf('NO %s DETECTED', defectLabel);
     end
     
+    hold(appData.resultAx, 'off');
+    
+    % Update classification
     set(appData.displayPanel, 'Visible', 'off');
     set(appData.resultsPanel, 'Visible', 'on');
     set(appData.resultClassification, 'String', classification, 'ForegroundColor', defectColor);
@@ -192,6 +196,8 @@ try
     
 catch ME
     msgbox(['Error: ' ME.message], 'Error', 'error');
+    fprintf('Debug - Error message: %s\n', ME.message);
+    fprintf('Debug - Error identifier: %s\n', ME.identifier);
 end
 end
 
@@ -206,7 +212,7 @@ set(appData.welcomeLabel, 'String', 'Welcome to Plastic Glove Defect Detection',
 set(appData.displayPanel, 'Visible', 'on');
 set(appData.resultsPanel, 'Visible', 'off');
 set(appData.burnBtn, 'Visible', 'off');
-set(appData.frostBtn, 'Visible', 'off');
+set(appData.bloodBtn, 'Visible', 'off');
 set(appData.discolBtn, 'Visible', 'off');
 
 appData.currentImage = [];
