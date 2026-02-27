@@ -78,35 +78,155 @@ end
 %% helper functions (replace with your own implementations)
 
 function contours = findOvenContours(img)
-%FINDOVENCONTOURS  return cell array of polygon points for each glove
-%   contour in the image.  Each element is an N-by-2 array containing the
-%   [x y] coordinates of the polygon.
-%
-%   This is a placeholder implementation that simply returns an empty
-%   cell array; plug in the actual contour‑finding code for your
-%   application.
+%FINDOVENCONTOURS  detect plastic glove boundaries
+%   Returns cell array of polygon contours for each glove region
+%   Adapted for clear/white polyethene plastic glove detection
+%   Uses HSV and intensity-based thresholding to isolate glove from background
 
+if ~isa(img,'uint8')
+    img = im2uint8(img);
+end
+
+if size(img,3) == 1
+    img = repmat(img, 1, 1, 3);
+end
+
+% Convert to grayscale
+gray = rgb2gray(img);
+
+% Plastic gloves appear as relatively bright regions (white/clear)
+% Threshold for bright regions (> 120 intensity)
+% This isolates the plastic glove from darker background
+glovePixels = gray > 120;
+
+% For better detection, also use saturation-based approach
+% Clear plastic has low saturation, so combine approaches
+if size(img,3) == 3
+    hsv = rgb2hsv(img);
+    S = hsv(:,:,2);
+    V = hsv(:,:,3);
+    % Low saturation (clear/white) AND bright enough
+    glovePixels = glovePixels | ((S < 0.15) & (V > 0.45));
+end
+
+% Morphological operations to clean and connect glove regions
+kernel = strel('disk', 5);
+glovePixels = imclose(glovePixels, kernel);
+glovePixels = imopen(glovePixels, kernel);
+
+% Find connected components (separate gloves if multiple)
+binaryImg = bwlabel(glovePixels);
+
+% Extract contours for each glove
 contours = {};
+for gloveIdx = 1:max(binaryImg(:))
+    gloveMask = (binaryImg == gloveIdx);
+    
+    % Only keep reasonably sized gloves
+    if sum(gloveMask(:)) < 500
+        continue;  % Too small, likely noise
+    end
+    
+    % Find boundary of this glove region
+    boundaries = bwboundaries(gloveMask);
+    if ~isempty(boundaries)
+        boundary = boundaries{1};
+        % Convert to [x y] format and add to contours
+        contour = fliplr(boundary);  % Convert from row-col to x-y
+        contours{end+1} = contour;
+    end
+end
 
-% example stub (uncomment and adapt):
-% bw = someThresholding(img);
-% B = bwboundaries(bw);
-% contours = cellfun(@(b) fliplr(b), B, 'UniformOutput', false);
-
+% Return empty if no gloves found
+if isempty(contours)
+    contours = {};
+end
 end
 
 function contours = findBurnContours(img)
-%FINDBURNCONTOURS  locate candidate burn regions in the image.  The
-%   output format mirrors findOvenContours.
+%FINDBURNCONTOURS  detect burn regions on plastic gloves
+%   Burns appear as darker/discolored regions on clear plastic
+%   Can be brown, tan, or darkened plastic from heat damage
+%   Filters by texture and intensity to avoid false positives
 
+if ~isa(img,'uint8')
+    img = im2uint8(img);
+end
+
+if size(img,3) == 1
+    img = repmat(img, 1, 1, 3);
+end
+
+% Convert to grayscale
+gray = rgb2gray(img);
+
+% Calculate glove mean intensity (bright regions are plastic)
+glovePixels = gray > 90;
+if sum(glovePixels(:)) > 100
+    gloveMeanIntensity = mean(gray(glovePixels));
+    gloveStdIntensity = std(double(gray(glovePixels)));
+else
+    gloveMeanIntensity = mean(gray(:));
+    gloveStdIntensity = std(double(gray(:)));
+end
+
+% Burn detection: darker than glove baseline (1.5-2.0 std below mean)
+% This captures burnt/damaged areas while avoiding shadows
+burnThreshold = gloveMeanIntensity - (1.8 * gloveStdIntensity);
+burnPixels = gray < burnThreshold;
+
+% Also detect subtle burns using local contrast
+% Burnt areas often have texture changes
+localStd = stdfilt(double(gray), ones(5, 5));
+medianStd = median(localStd(:));
+highTextureAreas = localStd > (medianStd * 1.3);
+darkAreas = gray < (gloveMeanIntensity - 10);
+burnPixels = burnPixels | (highTextureAreas & darkAreas);
+
+% Apply morphological operations
+kernel = strel('disk', 3);
+burnPixels = imopen(burnPixels, kernel);
+burnPixels = imclose(burnPixels, kernel);
+
+% Find connected components
+labeledImg = bwlabel(burnPixels);
+props = regionprops(labeledImg, 'BoundingBox', 'Area', 'Eccentricity', 'Solidity');
+
+% Extract contours with reasonable filtering
 contours = {};
+for i = 1:numel(props)
+    area = props(i).Area;
+    
+    % Area thresholds: burns can vary in size
+    if area < 80 || area > 20000
+        continue;  % Too small (noise) or too large (not realistic)
+    end
+    
+    % Filter by shape: some elongation is ok for irregular burns
+    if props(i).Eccentricity > 0.97
+        continue;  % Too thin/line-like
+    end
+    
+    % Filter by solidity: burn should be somewhat solid, not empty
+    if props(i).Solidity < 0.4
+        continue;
+    end
+    
+    bbox = props(i).BoundingBox;
+    x = bbox(1);
+    y = bbox(2);
+    w = bbox(3);
+    h = bbox(4);
+    
+    % Create contour
+    contour = [x, y; x+w, y; x+w, y+h; x, y+h];
+    contours{end+1} = contour;
+end
 
-% stub example:
-% gray = rgb2gray(img);
-% thresh = gray < 50;            % dark spots
-% B = bwboundaries(thresh);
-% contours = cellfun(@(b) fliplr(b), B, 'UniformOutput', false);
-
+% Return empty if no burns detected
+if isempty(contours)
+    contours = {};
+end
 end
 
 function overlay = drawRectangle(overlay, x, y, w, h, color, thickness)

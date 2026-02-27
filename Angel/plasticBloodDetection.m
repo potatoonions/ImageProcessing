@@ -42,9 +42,9 @@ end
 
 function contours = findBloodContours(img)
 %FINDBLOODCONTOURS  detect blood regions on plastic gloves
-%   Blood typically appears as red stains, detectable via HSV color detection
-%   Adapted from mould detection algorithm for leather gloves
-%   Detects red hues (blood color) on polyethene plastic gloves
+%   Blood appears as BRIGHT RED stains, not dark brown/burnt regions
+%   Filters strictly by color to avoid false positives on burnt areas
+%   Must be bright red (high saturation AND high brightness)
 
 if ~isa(img,'uint8')
     img = im2uint8(img);
@@ -54,49 +54,59 @@ if size(img,3) == 1
     img = repmat(img, 1, 1, 3);
 end
 
-% Convert RGB to HSV
+% Convert RGB to HSV for better color detection
 hsv = rgb2hsv(img);
 H = hsv(:,:,1);
 S = hsv(:,:,2);
 V = hsv(:,:,3);
 
-% Blood detection thresholds
-% Red hue: 0-10 degrees (0-0.028 in 0-1 range) or 350-360 degrees (0.972-1.0)
-% High saturation (> 0.3) and moderate-high brightness
-redLow = (H < 0.05) | (H > 0.95);
-saturated = S > 0.25;
-bright = V > 0.15;
+% Blood detection: STRICT criteria
+% 1. Red hue: 0-10 degrees (0-0.025) or 350-360 degrees (0.972-1.0)
+% 2. VERY high saturation (> 0.5) - blood is vibrant red
+% 3. HIGH brightness (> 0.4) - blood is bright red, not dark brown
+redHue = (H < 0.03) | (H > 0.97);
+highSaturation = S > 0.5;
+highBrightness = V > 0.4;
 
-% Combine conditions for blood detection
-bloodPixels = redLow & saturated & bright;
+% Combine conditions: ALL must be true for blood
+bloodPixels = redHue & highSaturation & highBrightness;
 
 % Apply morphological operations for noise reduction
-kernel = strel('disk', 4);
+kernel = strel('disk', 2);
 bloodPixels = imopen(bloodPixels, kernel);
 bloodPixels = imclose(bloodPixels, kernel);
 
-% Find connected components/contours
+% Find connected components
 labeledImg = bwlabel(bloodPixels);
-props = regionprops(labeledImg, 'BoundingBox', 'Area');
+props = regionprops(labeledImg, 'BoundingBox', 'Area', 'Eccentricity');
 
-% Find contours with sufficient area (> 120 pixels, similar to Python's > 150)
+% Extract contours with strict filtering
 contours = {};
 for i = 1:numel(props)
-    if props(i).Area > 120
-        % Get bounding box and extract contour
-        bbox = props(i).BoundingBox;
-        x = bbox(1);
-        y = bbox(2);
-        w = bbox(3);
-        h = bbox(4);
-        
-        % Create simple contour from bounding box corners [x, y] format
-        contour = [x, y; x+w, y; x+w, y+h; x, y+h];
-        contours{end+1} = contour;
+    area = props(i).Area;
+    
+    % Area thresholds: blood stains must be within reasonable range
+    if area < 80 || area > 10000
+        continue;  % Too small or too large
     end
+    
+    % Filter by shape: avoid extremely elongated artifacts
+    if props(i).Eccentricity > 0.90
+        continue;
+    end
+    
+    bbox = props(i).BoundingBox;
+    x = bbox(1);
+    y = bbox(2);
+    w = bbox(3);
+    h = bbox(4);
+    
+    % Create contour from bounding box
+    contour = [x, y; x+w, y; x+w, y+h; x, y+h];
+    contours{end+1} = contour;
 end
 
-% If no contours found, return empty
+% Return empty if no blood detected
 if isempty(contours)
     contours = {};
 end

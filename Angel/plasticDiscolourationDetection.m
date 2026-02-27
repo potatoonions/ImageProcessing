@@ -41,15 +41,81 @@ end
 end
 
 function contours = findDiscolourationContours(img)
-%FINDDISCOLOURATIONCONTOURS  stub for locating discolouration regions.
-%   Output format consistent with other contour helpers.
+%FINDDISCOLOURATIONCONTOURS  detect discoloration regions on plastic gloves
+%   Discoloration: color/shade variations that are NOT blood (red) and NOT burns (very dark)
+%   Targets moderate intensity changes and color deviations
+
+if ~isa(img,'uint8')
+    img = im2uint8(img);
+end
+
+if size(img,3) == 1
+    img = repmat(img, 1, 1, 3);
+end
+
+% Convert to HSV for better discoloration detection
+hsv = rgb2hsv(img);
+H = hsv(:,:,1);
+S = hsv(:,:,2);
+V = hsv(:,:,3);
+
+gray = rgb2gray(img);
+
+% Discoloration criteria:
+% 1. NOT blood (not bright red): exclude high saturation red hues
+notBrightRed = ~((H < 0.03 | H > 0.97) & S > 0.5 & V > 0.4);
+
+% 2. NOT very dark burns: must have reasonable brightness
+notVeryDark = gray > (mean(gray(:)) - 60);
+
+% 3. Slightly abnormal saturation or hue
+% Discolored areas often have color shifts or reduced saturation
+hueDifference = abs(H - median(H(:)));
+saturationDifference = abs(S - median(S(:)));
+
+% Pixels with unusual color characteristics
+discolorPixels = notBrightRed & notVeryDark & ...
+    ((hueDifference > 0.08 | saturationDifference > 0.15));
+
+% Apply morphological operations
+kernel = strel('disk', 2);
+discolorPixels = imopen(discolorPixels, kernel);
+discolorPixels = imclose(discolorPixels, kernel);
+
+% Find connected components
+labeledImg = bwlabel(discolorPixels);
+props = regionprops(labeledImg, 'BoundingBox', 'Area', 'Eccentricity');
+
+% Extract contours with filtering
 contours = {};
-% example stub:
-% gray = rgb2gray(img);
-% % threshold range could be mid-intensity variations, adjust as needed
-% thresh = (gray > 80) & (gray < 180);
-% B = bwboundaries(thresh);
-% contours = cellfun(@(b) fliplr(b), B, 'UniformOutput', false);
+for i = 1:numel(props)
+    area = props(i).Area;
+    
+    % Area thresholds
+    if area < 100 || area > 12000
+        continue;
+    end
+    
+    % Filter extreme elongation
+    if props(i).Eccentricity > 0.92
+        continue;
+    end
+    
+    bbox = props(i).BoundingBox;
+    x = bbox(1);
+    y = bbox(2);
+    w = bbox(3);
+    h = bbox(4);
+    
+    % Create contour
+    contour = [x, y; x+w, y; x+w, y+h; x, y+h];
+    contours{end+1} = contour;
+end
+
+% Return empty if no discoloration detected
+if isempty(contours)
+    contours = {};
+end
 end
 
 function contours = findOvenContours(img)
