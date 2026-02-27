@@ -41,20 +41,65 @@ end
 end
 
 function contours = findBloodContours(img)
-%FINDBLOODCONTOURS  stub for locating blood regions.
-%   Same output format as other contour helpers.
-%   Blood typically appears as dark red/brownish stains on gloves
+%FINDBLOODCONTOURS  detect blood regions on plastic gloves
+%   Blood typically appears as red stains, detectable via HSV color detection
+%   Adapted from mould detection algorithm for leather gloves
+%   Detects red hues (blood color) on polyethene plastic gloves
+
+if ~isa(img,'uint8')
+    img = im2uint8(img);
+end
+
+if size(img,3) == 1
+    img = repmat(img, 1, 1, 3);
+end
+
+% Convert RGB to HSV
+hsv = rgb2hsv(img);
+H = hsv(:,:,1);
+S = hsv(:,:,2);
+V = hsv(:,:,3);
+
+% Blood detection thresholds
+% Red hue: 0-10 degrees (0-0.028 in 0-1 range) or 350-360 degrees (0.972-1.0)
+% High saturation (> 0.3) and moderate-high brightness
+redLow = (H < 0.05) | (H > 0.95);
+saturated = S > 0.25;
+bright = V > 0.15;
+
+% Combine conditions for blood detection
+bloodPixels = redLow & saturated & bright;
+
+% Apply morphological operations for noise reduction
+kernel = strel('disk', 4);
+bloodPixels = imopen(bloodPixels, kernel);
+bloodPixels = imclose(bloodPixels, kernel);
+
+% Find connected components/contours
+labeledImg = bwlabel(bloodPixels);
+props = regionprops(labeledImg, 'BoundingBox', 'Area');
+
+% Find contours with sufficient area (> 120 pixels, similar to Python's > 150)
 contours = {};
-% example stub:
-% Convert to HSV to detect red hues
-% hsv = rgb2hsv(img);
-% H = hsv(:,:,1);
-% S = hsv(:,:,2);
-% V = hsv(:,:,3);
-% Red hue range (wraps around): < 0.1 or > 0.9
-% bloodPixels = ((H < 0.1 | H > 0.9) & S > 0.3 & V > 0.1);
-% B = bwboundaries(bloodPixels);
-% contours = cellfun(@(b) fliplr(b), B, 'UniformOutput', false);
+for i = 1:numel(props)
+    if props(i).Area > 120
+        % Get bounding box and extract contour
+        bbox = props(i).BoundingBox;
+        x = bbox(1);
+        y = bbox(2);
+        w = bbox(3);
+        h = bbox(4);
+        
+        % Create simple contour from bounding box corners [x, y] format
+        contour = [x, y; x+w, y; x+w, y+h; x, y+h];
+        contours{end+1} = contour;
+    end
+end
+
+% If no contours found, return empty
+if isempty(contours)
+    contours = {};
+end
 end
 
 function contours = findOvenContours(img)
