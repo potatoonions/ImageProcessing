@@ -1,98 +1,25 @@
-function plasticGUI
-%PLASTICGUI  simple interface for testing plastic glove defect detectors
-%
-%   Launches a window where the user can load an image and apply the burn,
-%   frosting or discolouration detectors defined in the Angel folder.  The
-%   resulting overlay is displayed on top of the original image.
+%% POLYETHENE PLASTIC GLOVE DEFECT DETECTION - LAUNCHER
 
-% create figure and axes
-hFig = figure('Name','Plastic Defect Tester','NumberTitle','off', ...
-    'MenuBar','none','Toolbar','none','Position',[100 100 800 600]);
+clear functions; clear all; clc; close all; rehash;
 
-hAx = axes('Parent',hFig,'Units','normalized', ...
-    'Position',[0.05 0.2 0.9 0.75]);
-imshow(zeros(10,10,3,'uint8'),'Parent',hAx); %# initialize
+fprintf('\n========================================\n');
+fprintf('  Plastic Glove Defect Detection GUI\n');
+fprintf('  (Polyethene Material)\n');
+fprintf('========================================\n\n');
 
-% control buttons
-uicontrol('Style','pushbutton','String','Load Image', ...
-    'Units','normalized','Position',[0.05 0.05 0.15 0.1], ...
-    'Callback',@onLoad);
+angelPath = pwd; % Current folder is Angel
+if isfolder(angelPath)
+    addpath(angelPath);
+else
+    error('Angel folder not found in current directory');
+end
 
-uicontrol('Style','pushbutton','String','Burn', ...
-    'Units','normalized','Position',[0.25 0.05 0.1 0.1], ...
-    'Callback',@onBurn);
+fprintf('Launching plastic glove GUI application...\n\n');
 
-uicontrol('Style','pushbutton','String','Frosting', ...
-    'Units','normalized','Position',[0.37 0.05 0.1 0.1], ...
-    'Callback',@onFrosting);
-
-uicontrol('Style','pushbutton','String','Discolour', ...
-    'Units','normalized','Position',[0.49 0.05 0.1 0.1], ...
-    'Callback',@onDiscolour);
-
-% store shared data
-data.img = [];
-data.overlay = [];
-guidata(hFig,data);
-
-%% callback implementations
-    function onLoad(~,~)
-        [file,path] = uigetfile({'*.png;*.jpg;*.jpeg','Images'});
-        if isequal(file,0), return; end
-        I = imread(fullfile(path,file));
-        data.img = I;
-        data.overlay = [];
-        guidata(hFig,data);
-        imshow(I,'Parent',hAx);
-    end
-
-    function applyDetector(detFunc)
-        if isempty(data.img)
-            errordlg('Load an image first','Error');
-            return;
-        end
-        ov = detFunc(data.img);
-        data.overlay = ov;
-        guidata(hFig,data);
-        % display image and overlay
-        imshow(data.img,'Parent',hAx);
-        hold(hAx,'on');
-        % ov is expected to be MxNx4 (RGBA). imshow requires RGB; set
-        % AlphaData separately. Handle missing/other formats robustly.
-        if isempty(ov)
-            hold(hAx,'off');
-            return;
-        end
-        if ndims(ov) == 3 && size(ov,3) == 4
-            overlayRGB = ov(:,:,1:3);
-            alphaData = double(ov(:,:,4))/255;
-        elseif ndims(ov) == 2
-            overlayRGB = cat(3,ov,ov,ov);
-            alphaData = ones(size(ov));
-        else
-            % already RGB or unexpected shape
-            overlayRGB = ov(:,:,1:min(end,3));
-            alphaData = ones(size(overlayRGB,1), size(overlayRGB,2));
-        end
-        him = imshow(overlayRGB,'Parent',hAx);
-        try
-            set(him,'AlphaData',alphaData);
-        catch
-            % some MATLAB versions may not accept AlphaData for certain
-            % image types; ignore silently.
-        end
-        hold(hAx,'off');
-    end
-
-    function onBurn(~,~)
-        applyDetector(@plasticDefectDetection);
-    end
-
-    function onFrosting(~,~)
-        applyDetector(@plasticFrostingDetection);
-    end
-
-    function onDiscolour(~,~)
-        applyDetector(@plasticDiscolourationDetection);
-    end
+try
+    PlasticDefectDetectionGUI();
+    fprintf('✓ GUI started successfully\n');
+catch ME
+    fprintf('✗ Error starting GUI:\n');
+    fprintf('  %s\n', ME.message);
 end
