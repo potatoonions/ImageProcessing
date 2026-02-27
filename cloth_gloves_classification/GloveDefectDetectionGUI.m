@@ -4,23 +4,19 @@ function GloveDefectDetectionGUI()
 persistent appData;
 if isempty(appData), appData = struct(); end
 
-% Create Figure
 fig = figure('Name', 'Glove Defect Detection', 'NumberTitle', 'off', ...
     'Position', [100 100 1000 800], 'Color', [0.94 0.94 0.94], ...
     'CloseRequestFcn', @(src, evt) closeApp());
 
-% Main Panel
 mainPanel = uipanel(fig, 'Position', [0.05 0.05 0.90 0.90], ...
     'BorderType', 'none', 'BackgroundColor', [0.94 0.94 0.94]);
 
-% Welcome Text
 appData.welcomeLabel = uicontrol(mainPanel, 'Style', 'text', ...
     'String', 'Welcome to Glove Defect Detection', ...
     'Units', 'normalized', 'Position', [0.1 0.90 0.8 0.07], ...
     'FontSize', 24, 'FontWeight', 'bold', 'ForegroundColor', [0.2 0.4 0.6], ...
     'BackgroundColor', [0.94 0.94 0.94]);
 
-% Display Panel - Initial image
 appData.displayPanel = uipanel(mainPanel, 'Position', [0.05 0.35 0.90 0.50], ...
     'BorderType', 'line', 'BackgroundColor', [0.15 0.15 0.15], ...
     'Visible', 'on');
@@ -29,12 +25,10 @@ appData.displayAx = axes(appData.displayPanel, 'Position', [0.05 0.05 0.90 0.90]
     'Color', [0.15 0.15 0.15]);
 axis(appData.displayAx, 'off');
 
-% Pipeline Panel - 4 step processing
 appData.pipelinePanel = uipanel(mainPanel, 'Position', [0.05 0.35 0.90 0.50], ...
     'BorderType', 'line', 'BackgroundColor', [0.96 0.96 0.96], ...
     'Visible', 'off');
 
-% Create 4 axes for pipeline steps
 appData.step1Ax = axes('Parent', appData.pipelinePanel, 'Position', [0.05 0.55 0.20 0.40]);
 title(appData.step1Ax, '1. Original', 'FontSize', 10);
 axis(appData.step1Ax, 'image', 'off');
@@ -51,14 +45,12 @@ appData.step4Ax = axes('Parent', appData.pipelinePanel, 'Position', [0.80 0.55 0
 title(appData.step4Ax, '4. Final Result', 'FontSize', 10);
 axis(appData.step4Ax, 'image', 'off');
 
-% Info text on pipeline panel
 appData.pipelineInfo = uicontrol(appData.pipelinePanel, 'Style', 'text', ...
     'String', 'Processing pipeline shown above', ...
     'Units', 'normalized', 'Position', [0.05 0.05 0.90 0.30], ...
     'FontSize', 11, 'BackgroundColor', [0.96 0.96 0.96], ...
     'HorizontalAlignment', 'left');
 
-% Results Panel
 appData.resultsPanel = uipanel(mainPanel, 'Position', [0.05 0.35 0.90 0.50], ...
     'BorderType', 'line', 'BackgroundColor', [0.96 0.96 0.96], ...
     'Visible', 'off');
@@ -66,7 +58,6 @@ appData.resultsPanel = uipanel(mainPanel, 'Position', [0.05 0.35 0.90 0.50], ...
 appData.resultAx = axes('Parent', appData.resultsPanel, 'Position', [0.05 0.15 0.90 0.80]);
 axis(appData.resultAx, 'image', 'off');
 
-% Results info
 uicontrol(appData.resultsPanel, 'Style', 'text', 'String', 'Material: Cloth Gloves', ...
     'Units', 'normalized', 'Position', [0.05 0.05 0.4 0.06], ...
     'FontSize', 11, 'FontWeight', 'bold', 'BackgroundColor', [0.96 0.96 0.96]);
@@ -76,18 +67,15 @@ appData.resultClassification = uicontrol(appData.resultsPanel, 'Style', 'text', 
     'FontSize', 11, 'FontWeight', 'bold', 'ForegroundColor', [0.2 0.4 0.6], ...
     'BackgroundColor', [0.96 0.96 0.96]);
 
-% Button Panel
 buttonPanel = uipanel(mainPanel, 'Position', [0.05 0.02 0.90 0.12], ...
     'BorderType', 'none', 'BackgroundColor', [0.94 0.94 0.94]);
 
-% Upload Button
 uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Upload Image', ...
     'Units', 'normalized', 'Position', [0.25 0.30 0.20 0.60], ...
     'FontSize', 12, 'FontWeight', 'bold', ...
     'BackgroundColor', [0.3 0.6 0.85], 'ForegroundColor', [1 1 1], ...
     'Callback', @(src, evt) uploadImage(fig));
 
-% Classify Button (hidden initially)
 appData.classifyBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Classify Defects', ...
     'Units', 'normalized', 'Position', [0.50 0.30 0.20 0.60], ...
     'FontSize', 12, 'FontWeight', 'bold', ...
@@ -95,7 +83,6 @@ appData.classifyBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'C
     'Visible', 'off', ...
     'Callback', @(src, evt) classifyDefects(fig));
 
-% Show Results Button (hidden initially)
 appData.showResultBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Show Results', ...
     'Units', 'normalized', 'Position', [0.50 0.30 0.20 0.60], ...
     'FontSize', 12, 'FontWeight', 'bold', ...
@@ -103,14 +90,12 @@ appData.showResultBtn = uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 
     'Visible', 'off', ...
     'Callback', @(src, evt) showResults(fig));
 
-% Reset Button
 uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Reset', ...
     'Units', 'normalized', 'Position', [0.75 0.30 0.20 0.60], ...
     'FontSize', 12, 'FontWeight', 'bold', ...
     'BackgroundColor', [0.8 0.3 0.3], 'ForegroundColor', [1 1 1], ...
     'Callback', @(src, evt) resetGUI(fig));
 
-% Initialize
 appData.fig = fig;
 appData.currentImage = [];
 appData.grayImage = [];
@@ -168,24 +153,16 @@ try
     gray = rgb2gray(img);
     appData.grayImage = gray;
     
-    % STEP 1: Original (grayscale)
     imshow(gray, 'Parent', appData.step1Ax);
     
-    % STEP 2: Create binary mask - glove outline
-    % For white cloth gloves: use grayscale intensity
-    % White glove = high intensity, dark background = low intensity
-    mask = gray > 150;  % Pixels brighter than 150 are likely the glove
-    
-    % Clean up the mask - fill holes and smooth edges
+    mask = gray > 150;
     mask = imfill(mask, 'holes');
     mask = bwareaopen(mask, 100);
     
-    % Morphological operations to clean
     se = strel("disk", 3);
     mask = imopen(mask, se);
     mask = imclose(mask, se);
     
-    % Keep only the largest object (the main glove)
     cc = bwconncomp(mask);
     if cc.NumObjects > 0
         sizes = cellfun(@numel, cc.PixelIdxList);
@@ -196,20 +173,15 @@ try
     end
     
     appData.mask = mask;
-    
     imshow(mask, 'Parent', appData.step2Ax);
     
-    % STEP 3: Morphology
     se = strel("disk", 3);
     morphology = imclose(imopen(mask, se), se);
     appData.morphology = morphology;
-    
     imshow(morphology, 'Parent', appData.step3Ax);
     
-    % STEP 4: Display original with mask overlay
     imshow(gray, 'Parent', appData.step4Ax);
     
-    % Update UI
     set(appData.displayPanel, 'Visible', 'off');
     set(appData.pipelinePanel, 'Visible', 'on');
     set(appData.classifyBtn, 'Visible', 'off');
@@ -232,36 +204,47 @@ end
 
 try
     gray = appData.grayImage;
-    gloveMask = appData.morphology;  % Binary glove outline
+    gloveMask = appData.morphology;
     
-    % STEP 1: Identify main color/intensity of the glove
     glovePixels = gray(gloveMask);
     mainIntensity = mean(glovePixels);
     intensityStd = std(double(glovePixels));
     
-    % STEP 2: Find glove contour
     gloveContour = bwboundaries(gloveMask);
     if isempty(gloveContour)
         error('Could not find glove contour');
     end
-    gloveContourPoly = gloveContour{1};  % Main contour
+    gloveContourPoly = gloveContour{1};
     
-    % STEP 3: Create detection regions
     dilatedMask = imdilate(gloveMask, strel('disk', 5));
     erodedMask = imerode(gloveMask, strel('disk', 2));
     contourRegion = dilatedMask & ~erodedMask;
     
-    % STEP 4: Detect potential defects
+    % Hole detection: very dark regions
     holePixels = (gray < (mainIntensity - 30)) & contourRegion;
-    snagPixels = ((gray >= (mainIntensity - 50)) & (gray <= (mainIntensity - 10))) & contourRegion;
-    stainPixels = ((gray >= (mainIntensity + 10)) & (gray <= (mainIntensity + 50))) & contourRegion;
     
-    % STEP 5: Analyze defects with contour analysis and filtering
+    % Snag detection: medium dark regions
+    snagPixels = ((gray >= (mainIntensity - 50)) & (gray <= (mainIntensity - 10))) & contourRegion;
+    
+    % Stain detection: Use texture-based detection for visible dirt/discoloration
+    % Stains appear as regions with different texture (higher local std deviation)
+    % and darker than expected
+    localStd = stdfilt(double(gray), ones(5, 5));
+    stainPixels = (localStd > 12) & (gray < (mainIntensity + 20)) & (gray > (mainIntensity - 40)) & contourRegion;
+    
+    % Also detect very faint stains using intensity deviation alone
+    stainPixels2 = ((gray >= (mainIntensity - 25)) & (gray <= (mainIntensity + 5))) & contourRegion;
+    stainPixels = stainPixels | stainPixels2;
+    
+    % Clean stain pixels with morphological operations
+    se = strel("disk", 2);
+    stainPixels = imopen(stainPixels, se);
+    stainPixels = imclose(stainPixels, se);
+    
     [holes, holeCount] = analyzeDefects(holePixels, gloveContourPoly, 'hole', 400, 2);
     [snags, snagCount] = analyzeDefects(snagPixels, gloveContourPoly, 'snag', 150, 2.25);
-    [stains, stainCount] = analyzeDefects(stainPixels, gloveContourPoly, 'stain', 150, 2.25);
+    [stains, stainCount] = analyzeDefects(stainPixels, gloveContourPoly, 'stain', 80, 2.5);
     
-    % STEP 6: Classify based on filtered results
     defects = [holes; snags; stains];
     
     if holeCount > 0 && holeCount >= snagCount && holeCount >= stainCount
@@ -278,14 +261,11 @@ try
         defectType = 'none';
     end
     
-    % STEP 7: Visualize results
     imshow(gray, 'Parent', appData.resultAx);
     hold(appData.resultAx, 'on');
     
-    % Draw glove contour
     plot(appData.resultAx, gloveContourPoly(:,2), gloveContourPoly(:,1), 'Color', [0.7 0.7 0.7], 'LineWidth', 2);
     
-    % Draw defects with labels
     for i = 1:length(defects)
         defect = defects(i);
         if ~isempty(defect.box)
@@ -294,19 +274,15 @@ try
             w = defect.box(3);
             h = defect.box(4);
             
-            % Choose color based on type
             if strcmp(defect.type, 'hole')
-                color = [1 0 0];  % Red
+                color = [1 0 0];
             elseif strcmp(defect.type, 'snag')
-                color = [1 1 0];  % Yellow
-            else  % stain
-                color = [1 0 1];  % Magenta
+                color = [1 1 0];
+            else
+                color = [1 0 1];
             end
             
-            % Draw rectangle
             rectangle(appData.resultAx, 'Position', [x, y, w, h], 'EdgeColor', color, 'LineWidth', 2);
-            
-            % Draw label
             text(appData.resultAx, x + w/2, y - 5, defect.type, ...
                 'Color', color, 'HorizontalAlignment', 'center', 'FontSize', 9, 'FontWeight', 'bold');
         end
@@ -314,7 +290,6 @@ try
     
     hold(appData.resultAx, 'off');
     
-    % Update UI
     set(appData.displayPanel, 'Visible', 'off');
     set(appData.pipelinePanel, 'Visible', 'off');
     set(appData.resultsPanel, 'Visible', 'on');

@@ -6,18 +6,9 @@ function member1_cloth_defect_analysis
 %   1. Holes - dark punctures/worn areas
 %   2. Snags - pulled/snagged fibers
 %   3. Stains - discolored areas
-%
-% Workflow:
-%   1. Image preprocessing (resize, filter, normalize)
-%   2. Background removal via HSV thresholding
-%   3. Multi-defect detection and feature extraction
-%   4. Statistical analysis and visualization
-%
-% Expected delivery date: 5TH MARCH, 2026
 
 clc; clear;
 
-%% ========== CONFIGURATION ==========
 DATASET_DIR = fullfile(pwd, "gloves_dataset");
 GLOVE_TYPE = "cloth gloves";
 DEFECT_TYPES = ["Normal", "Hole", "Snags", "Stain"];
@@ -32,35 +23,30 @@ MIN_BLOB_AREA = 700;
 CLOSE_RADIUS = 5;
 IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"];
 
-% Defect detection thresholds
-HOLE_THRESHOLD = 100;        % Dark pixels < 100 are holes
-SNAG_THRESHOLD = 130;        % Medium-dark pixels for snags
-STAIN_THRESHOLD = 140;       % Medium pixels for stains
-STAIN_COLOR_RANGE = 30;      % Color variation for stains (in HSV)
+HOLE_THRESHOLD = 100;
+SNAG_THRESHOLD = 130;
+STAIN_THRESHOLD = 140;
+STAIN_COLOR_RANGE = 30;
 
 MIN_DEFECT_AREA = 50;
 MAX_DEFECT_AREA = 5000;
 MORPH_RADIUS = 3;
 
-%% ========== INITIALIZE OUTPUT FOLDERS ==========
 fprintf("\n========== INITIALIZING DIRECTORIES ==========\n");
 
 if ~isfolder(OUT_PROC), mkdir(OUT_PROC); end
 if ~isfolder(OUT_LOGS), mkdir(OUT_LOGS); end
 
-% Create subdirectories for processed images
 procSubs = ["resized", "gray", "hsv", "filtered_gaussian", "filtered_median", ...
             "masks", "isolated", "hole_detection", "snag_detection", "stain_detection"];
 for s = procSubs
     p = fullfile(OUT_PROC, s);
     if ~isfolder(p), mkdir(p); end
-    % Create cloth gloves subdirectory
     if ~isfolder(fullfile(p, GLOVE_TYPE))
         mkdir(fullfile(p, GLOVE_TYPE));
     end
 end
 
-% Create detection results directories
 for defectType = DEFECT_TYPES
     for detMethod = ["hole_detection", "snag_detection", "stain_detection"]
         detDir = fullfile(OUT_LOGS, detMethod, GLOVE_TYPE, defectType);
@@ -70,7 +56,6 @@ end
 
 fprintf("✓ Output directories created\n");
 
-%% ========== MAIN PROCESSING LOOP ==========
 fprintf("\n========== STEP 1: PREPROCESSING ==========\n");
 
 statsRows = {};
@@ -290,7 +275,8 @@ function m = cleanMask(m, minArea, r)
 end
 
 function defects = detectDefects(grayImg, gloveMask, threshold, morphRad, minArea, maxArea, type)
-    % Detects defects using intensity-based thresholding
+    % Detects defects using intensity-based thresholding with aspect ratio filtering
+    % Incorporates Python approaches: aspect ratio filtering, point-in-polygon testing
     % type: 'dark' (holes), 'medium' (snags), etc.
     
     if strcmp(type, 'dark')
@@ -307,6 +293,9 @@ function defects = detectDefects(grayImg, gloveMask, threshold, morphRad, minAre
     % Restrict to glove region
     defectRegion = defectPixels & gloveMask;
     
+    % Find glove boundary for point-in-polygon testing
+    gloveBoundary = bwboundaries(gloveMask);
+    
     % Find connected components
     cc = bwconncomp(defectRegion);
     defects = [];
@@ -316,15 +305,58 @@ function defects = detectDefects(grayImg, gloveMask, threshold, morphRad, minAre
         objArea = numel(pixelIdxList);
         
         if objArea >= minArea && objArea <= maxArea
+            % Create binary mask for this defect
+            defectMask = false(size(grayImg));
+            defectMask(pixelIdxList) = true;
+            
+            % Get bounding box and aspect ratio
+            props = regionprops(defectMask, "Centroid", "BoundingBox", "EquivDiameter");
+            centroid = props.Centroid;
+            bbox = props.BoundingBox;
+            
+            % Calculate aspect ratio from bounding box
+            width = bbox(3);
+            height = bbox(4);
+            if height > 0
+                aspectRatio = width / height;
+                if aspectRatio < 1 && aspectRatio > 0
+                    aspectRatio = 1 / aspectRatio;
+                end
+            else
+                aspectRatio = 1;
+            end
+            
+            % Filter by aspect ratio (exclude very elongated artifacts)
+            % Python uses aspect_ratio < 2.25 for stains, < 2 for holes
+            maxAspectRatio = 2.5; % Allow slightly elongated defects
+            if aspectRatio > maxAspectRatio
+                continue; % Skip this defect
+            end
+            
+            % Point-in-polygon testing: verify defect center is within glove
+            if ~isempty(gloveBoundary)
+                gloveContour = gloveBoundary{1};
+                % inpolygon checks if points are inside polygon
+                inGlove = inpolygon(centroid(1), centroid(2), gloveContour(:,2), gloveContour(:,1));
+                if ~inGlove
+                    continue; % Skip if center not in glove
+                end
+            end
+            
+            % Store defect with additional properties
             defect.pixelIdxList = pixelIdxList;
             defect.area = objArea;
+            defect.centroid = centroid;
+            defect.bbox = bbox;
+            defect.aspectRatio = aspectRatio;
             defects = [defects; defect]; %#ok<AGROW>
         end
     end
 end
 
 function defects = detectStains(grayImg, gloveMask, threshold, morphRad, minArea, maxArea)
-    % Detects stains using texture analysis
+    % Detects stains using texture analysis with aspect ratio filtering
+    % Incorporates Python approaches: aspect ratio filtering, point-in-polygon testing
     % Stains appear as regions with different intensity characteristics
     
     % Use local standard deviation to find texture changes
@@ -339,6 +371,9 @@ function defects = detectStains(grayImg, gloveMask, threshold, morphRad, minArea
     % Restrict to glove region
     stainRegion = stainPixels & gloveMask;
     
+    % Find glove boundary for point-in-polygon testing
+    gloveBoundary = bwboundaries(gloveMask);
+    
     % Find connected components
     cc = bwconncomp(stainRegion);
     defects = [];
@@ -348,15 +383,56 @@ function defects = detectStains(grayImg, gloveMask, threshold, morphRad, minArea
         objArea = numel(pixelIdxList);
         
         if objArea >= minArea && objArea <= maxArea
+            % Create binary mask for this defect
+            defectMask = false(size(grayImg));
+            defectMask(pixelIdxList) = true;
+            
+            % Get bounding box and centroid
+            props = regionprops(defectMask, "Centroid", "BoundingBox");
+            centroid = props.Centroid;
+            bbox = props.BoundingBox;
+            
+            % Calculate aspect ratio from bounding box
+            width = bbox(3);
+            height = bbox(4);
+            if height > 0
+                aspectRatio = width / height;
+                if aspectRatio < 1 && aspectRatio > 0
+                    aspectRatio = 1 / aspectRatio;
+                end
+            else
+                aspectRatio = 1;
+            end
+            
+            % Filter by aspect ratio (Python uses < 2.25 for stains)
+            maxAspectRatio = 2.25;
+            if aspectRatio > maxAspectRatio
+                continue; % Skip this stain if too elongated
+            end
+            
+            % Point-in-polygon testing: verify stain center is within glove
+            if ~isempty(gloveBoundary)
+                gloveContour = gloveBoundary{1};
+                inGlove = inpolygon(centroid(1), centroid(2), gloveContour(:,2), gloveContour(:,1));
+                if ~inGlove
+                    continue; % Skip if center not in glove
+                end
+            end
+            
+            % Store stain with additional properties
             defect.pixelIdxList = pixelIdxList;
             defect.area = objArea;
+            defect.centroid = centroid;
+            defect.bbox = bbox;
+            defect.aspectRatio = aspectRatio;
             defects = [defects; defect]; %#ok<AGROW>
         end
     end
 end
 
 function features = extractFeatures(grayImg, defects)
-    % Extract geometric and intensity features
+    % Extract geometric and intensity features with shape analysis
+    % Includes aspect ratio and ellipse fitting from Python approach
     
     features = struct();
     
@@ -369,12 +445,25 @@ function features = extractFeatures(grayImg, defects)
         defectMask(pixelIdxList) = true;
         
         % Geometric properties
-        props = regionprops(defectMask, "Perimeter", "Solidity", "Eccentricity");
+        props = regionprops(defectMask, "Perimeter", "Solidity", "Eccentricity", ...
+                           "MajorAxisLength", "MinorAxisLength");
         
         features(d).area = defect.area;
         features(d).perimeter = props.Perimeter;
         features(d).solidity = props.Solidity;
         features(d).eccentricity = props.Eccentricity;
+        
+        % Shape features (from Python ellipse fitting)
+        features(d).aspectRatio = defect.aspectRatio;
+        if features(d).aspectRatio > 0
+            features(d).shapeCircularity = props.MinorAxisLength / props.MajorAxisLength;
+        else
+            features(d).shapeCircularity = 1;
+        end
+        
+        % Bounding box information
+        features(d).bboxWidth = defect.bbox(3);
+        features(d).bboxHeight = defect.bbox(4);
         
         % Intensity statistics
         defectIntensities = grayImg(pixelIdxList);
@@ -386,13 +475,14 @@ function features = extractFeatures(grayImg, defects)
 end
 
 function exportVisualization(grayImg, gloveMask, defects, outPath)
-    % Create visualization of detected defects
+    % Create visualization of detected defects with labeled bounding boxes
+    % Enhanced with Python approach: bounding box drawing + text labels
     
     if ~isfolder(fileparts(outPath))
         mkdir(fileparts(outPath));
     end
     
-    f = figure("Visible", "off", "Position", [0 0 800 600]);
+    f = figure("Visible", "off", "Position", [0 0 1000 800]);
     t = tiledlayout(2, 2, "TileSpacing", "compact");
     
     % Panel 1: Grayscale
@@ -408,21 +498,40 @@ function exportVisualization(grayImg, gloveMask, defects, outPath)
     end
     nexttile; imshow(defectMask); title(sprintf("Detected Defects (n=%d)", numel(defects)));
     
-    % Panel 4: Overlay
+    % Panel 4: Overlay with labeled bounding boxes (Python approach)
     nexttile;
-    imshow(grayImg);
+    rgbImg = repmat(grayImg, [1 1 3]); % Convert to RGB for colored boxes
+    imshow(rgbImg);
     hold on;
+    
+    % Define colors for different defect types
+    colors = [255 0 0;   % Red for holes
+              0 255 0;   % Green for snags
+              0 0 255];  % Blue for stains
+    colorIdx = 1;
+    
     for d = 1:numel(defects)
-        defectMaskD = false(size(grayImg));
-        defectMaskD(defects(d).pixelIdxList) = true;
-        boundaries = bwboundaries(defectMaskD);
-        for k = 1:length(boundaries)
-            boundary = boundaries{k};
-            plot(boundary(:, 2), boundary(:, 1), 'r-', 'LineWidth', 2);
-        end
+        % Draw bounding box (Python approach)
+        bbox = defects(d).bbox;
+        x = bbox(1);
+        y = bbox(2);
+        w = bbox(3);
+        h = bbox(4);
+        
+        % Draw rectangle
+        rectangle("Position", [x y w h], "EdgeColor", "red", "LineWidth", 2);
+        
+        % Add label text (similar to Python code)
+        label = sprintf("D%d", d);
+        textX = x + w/2;
+        textY = y + h + 15;
+        
+        text(textX, textY, label, "Color", "red", "FontSize", 10, ...
+            "HorizontalAlignment", "center", "FontWeight", "bold", ...
+            "BackgroundColor", "white");
     end
     hold off;
-    title(sprintf("Defects Overlaid (n=%d)", numel(defects)));
+    title(sprintf("Defects with Bounding Boxes (n=%d)", numel(defects)));
     
     exportgraphics(t, outPath, "Resolution", 150);
     close(f);

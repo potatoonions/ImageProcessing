@@ -1,18 +1,13 @@
 function ThresholdTuner()
 % Interactive Threshold Tuner for Cloth Glove Detection
-% Similar to the Python OpenCV version with LAB/color space sliders
-% Allows real-time adjustment of detection thresholds
 
-    % Create figure with GUI
     fig = figure('Name', 'Cloth Glove - Threshold Tuner', 'NumberTitle', 'off', ...
         'Position', [100 100 1200 800], 'Color', [0.94 0.94 0.94]);
     
-    % Data storage
     appData = struct();
     appData.img = [];
     appData.gray = [];
     
-    % Main layout: Load button + image selectors
     topPanel = uipanel(fig, 'Position', [0.02 0.90 0.96 0.08], ...
         'BorderType', 'line', 'BackgroundColor', [0.94 0.94 0.94]);
     
@@ -30,16 +25,13 @@ function ThresholdTuner()
     appData.displayAx = axes(displayPanel, 'Position', [0.05 0.05 0.90 0.90]);
     axis(appData.displayAx, 'off');
     
-    % Control panel with sliders
     ctrlPanel = uipanel(fig, 'Position', [0.72 0.40 0.26 0.48], ...
         'BorderType', 'line', 'Title', 'Detection Thresholds');
     
-    % Slider positions
     sliderY = 0.85;
     sliderHeight = 0.08;
     spacing = 0.01;
     
-    % Main Color/Intensity Threshold
     uicontrol(ctrlPanel, 'Style', 'text', 'String', 'Main Color Min:', ...
         'Position', [10 sliderY*350 130 20], 'BackgroundColor', [0.96 0.96 0.96]);
     appData.colorMinSlider = uicontrol(ctrlPanel, 'Style', 'slider', ...
@@ -62,7 +54,6 @@ function ThresholdTuner()
     
     sliderY = sliderY - sliderHeight - spacing;
     
-    % Hole Threshold
     uicontrol(ctrlPanel, 'Style', 'text', 'String', 'Hole Threshold:', ...
         'Position', [10 sliderY*350 130 20], 'BackgroundColor', [0.96 0.96 0.96]);
     appData.holeSlider = uicontrol(ctrlPanel, 'Style', 'slider', ...
@@ -74,7 +65,6 @@ function ThresholdTuner()
     
     sliderY = sliderY - sliderHeight - spacing;
     
-    % Snag Threshold
     uicontrol(ctrlPanel, 'Style', 'text', 'String', 'Snag Upper:', ...
         'Position', [10 sliderY*350 130 20], 'BackgroundColor', [0.96 0.96 0.96]);
     appData.snagUpperSlider = uicontrol(ctrlPanel, 'Style', 'slider', ...
@@ -97,7 +87,6 @@ function ThresholdTuner()
     
     sliderY = sliderY - sliderHeight - spacing;
     
-    % Stain Threshold
     uicontrol(ctrlPanel, 'Style', 'text', 'String', 'Stain Upper:', ...
         'Position', [10 sliderY*350 130 20], 'BackgroundColor', [0.96 0.96 0.96]);
     appData.stainUpperSlider = uicontrol(ctrlPanel, 'Style', 'slider', ...
@@ -118,7 +107,6 @@ function ThresholdTuner()
     appData.stainLowerLabel = uicontrol(ctrlPanel, 'Style', 'text', 'String', '10', ...
         'Position', [145 (sliderY-0.02)*350 30 20], 'BackgroundColor', [0.96 0.96 0.96]);
     
-    % Bottom panel - Mode selector
     bottomPanel = uipanel(fig, 'Position', [0.02 0.02 0.96 0.35], ...
         'BorderType', 'line', 'Title', 'Detection Mode');
     
@@ -136,11 +124,9 @@ function ThresholdTuner()
     
     set(appData.modeGroup, 'SelectedObject', findobj(appData.modeGroup, 'String', 'Glove Mask'));
     
-    % Preview axes for masks
     appData.maskAx = axes(bottomPanel, 'Position', [0.05 0.05 0.90 0.75]);
     axis(appData.maskAx, 'off');
     
-    % Save button
     uicontrol(bottomPanel, 'Style', 'pushbutton', 'String', 'Save Thresholds', ...
         'Position', [10 395 120 30], 'Callback', @(s,e) saveThresholds(fig));
     

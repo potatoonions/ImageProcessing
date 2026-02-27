@@ -1,34 +1,26 @@
 %% GLOVE DEFECT DETECTION - CONFIGURATION FILE
-% Adjust these parameters to fine-tune detection sensitivity
-% No need to edit GloveDefectDetectionGUI.m - just modify this file
-%
-% Usage: Call loadConfig() in the GUI to use these settings
+% Adjust parameters here. No need to edit GloveDefectDetectionGUI.m
 
 classdef DetectionConfig
     properties (Constant)
-        % ===== IMAGE PREPROCESSING =====
         TARGET_IMAGE_SIZE = [256 256]          % Resize all images to this size
         GAUSSIAN_SIGMA = 1.0                   % Gaussian blur sigma parameter
         MEDIAN_FILTER_SIZE = [3 3]             % Median filter kernel size
         
-        % ===== GLOVE MASK CREATION =====
-        MIN_BLOB_AREA = 200                    % Minimum blobarea for mask
+        MIN_BLOB_AREA = 200                    % Minimum blob area for mask
         CLOSE_RADIUS = 5                       % Morphological closing radius
         
-        % ===== HOLE DETECTION =====
         HOLE_INTENSITY_THRESHOLD = 100         % Pixels darker than this are holes
         HOLE_MIN_AREA = 50                     % Minimum hole area (pixels)
         HOLE_MAX_AREA = 5000                   % Maximum hole area (pixels)
         HOLE_MORPH_RADIUS = 2                  % Morphology radius for holes
         
-        % ===== SNAG DETECTION =====
         SNAG_UPPER_THRESHOLD = 130             % Upper intensity boundary
         SNAG_LOWER_THRESHOLD = 70              % Lower intensity boundary
         SNAG_MIN_AREA = 50                     % Minimum snag area (pixels)
         SNAG_MAX_AREA = 5000                   % Maximum snag area (pixels)
         SNAG_MORPH_RADIUS = 2                  % Morphology radius for snags
         
-        % ===== STAIN DETECTION =====
         STAIN_TEXTURE_THRESHOLD = 15           % Local standard deviation threshold
         STAIN_INTENSITY_MIN = 100              % Minimum intensity for stains
         STAIN_INTENSITY_MAX = 200              % Maximum intensity for stains
@@ -37,7 +29,6 @@ classdef DetectionConfig
         STAIN_MORPH_RADIUS = 2                 % Morphology radius for stains
         STAIN_TEXTURE_WINDOW = 5               % Local std calculation window
         
-        % ===== DISPLAY COLORS =====
         HOLE_COLOR = 'r'                       % Hole boundary color (red)
         SNAG_COLOR = 'y'                       % Snag boundary color (yellow)
         STAIN_COLOR = 'm'                      % Stain boundary color (magenta)
