@@ -37,8 +37,12 @@ Develop a Glove Defect Detection (GDD) system that:
 - member 3 tasks
   - glove type: nitrile
   - defect: inside out, improper roll, not worn
-  - dataset: logs/gloves_dataset/, most data not acquired yet
-  - code: nitrile_gloves_classification
+  - dataset: logs/gloves_dataset/
+  - code: nitrile_gloves_classification/
+  - command to run:
+    - GUI: matlab -batch "cd nitrile_gloves_classification; NitrileDefectDetectionGUI"
+    - Batch (full): matlab -batch "cd nitrile_gloves_classification; addpath(pwd); member3_nitrile_defect_analysis; exit;"
+    - Batch (subset): matlab -batch "cd nitrile_gloves_classification; addpath(pwd); member3_nitrile_defect_analysis(5); exit;"
 
 ## Instructions for Agents
 When working on this project, always:
