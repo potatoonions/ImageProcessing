@@ -10,31 +10,37 @@ nitrile_gloves_classification/
 
 logs/
 └── gloves_dataset/
-    └── nitrile gloves/
+    └── Nitrile gloves/                  # Dataset (uploaded)
         ├── Normal/
-        ├── InsideOut/
-        ├── ImproperRoll/
-        └── NotWorn/
+        ├── inside out/
+        ├── improper roll/
+        └── not worn/
 ```
 
 ## Usage
 
-### Option 1: GUI (Recommended)
-```matlab
-NitrileDefectDetectionGUI
+### Option 1: GUI (Interactive)
+```bash
+matlab -r "cd nitrile_gloves_classification; NitrileDefectDetectionGUI"
 ```
 Click "Upload Image" → Select image → Click "Classify Defects"
 
 ### Option 2: Batch Processing
-```matlab
-member3_nitrile_defect_analysis
+
+**Full dataset:**
+```bash
+matlab -batch "cd nitrile_gloves_classification; addpath(pwd); member3_nitrile_defect_analysis; exit;"
 ```
-Processes all images in dataset and saves results to logs/
+
+**Subset (e.g., 5 images per class):**
+```bash
+matlab -batch "cd nitrile_gloves_classification; addpath(pwd); member3_nitrile_defect_analysis(5); exit;"
+```
 
 ## Detection Methods
 
 ### Not Worn
-- Checks number of boundaries (worn glove has multiple boundaries)
+- Checks number of boundaries (worn glove has hand + glove = 2+, unworn = 1)
 - Threshold: < 2 boundaries = not worn
 - Features: boundary count, convexity, perimeter/area ratio
 
@@ -58,9 +64,9 @@ NitrileConfig.printConfig()  % View current settings
 ## Output
 
 Batch processing creates:
-- `processed/` - Preprocessed images
+- `processed/` - Preprocessed images (resized, grayscale, masks, isolated)
 - `logs/` - Detection results and CSV statistics
-- Visualizations with bounding boxes
+- Visualizations with bounding boxes and labels
 
 ## Tuning Tips
 
@@ -73,3 +79,15 @@ Batch processing creates:
 - Increase NOT_WORN_MIN_BOUNDARIES
 - Decrease IMPROPER_ROLL_CONVEXITY_THRESHOLD
 - Increase INSIDE_OUT_PERIMETER_RATIO_THRESHOLD
+
+## Important Notes
+
+⚠️ **MATLAB Toolbox**: Code has fallbacks for missing Image Processing Toolbox functions.
+   - Advanced functions may not work optimally
+   - Basic functionality is preserved
+   - Consider installing Image Processing Toolbox for best results
+
+⚠️ **Small Datasets**: Some defect types have few images:
+   - inside out: 6 images
+   - improper roll: 5 images
+   - May need more data for robust training/tuning
