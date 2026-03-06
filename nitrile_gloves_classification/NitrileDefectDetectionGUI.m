@@ -210,14 +210,34 @@ function NitrileDefectDetectionGUI(varargin)
     end
 
     function mask = cleanMask(mask, minArea, r)
-        mask = bwareaopen(mask, minArea);
-        mask = imclose(mask, strel('disk', r));
-        cc = bwconncomp(mask);
-        if cc.NumObjects < 1, return; end
-        [~, idx] = max(cellfun(@numel, cc.PixelIdxList));
-        tmp = false(size(mask));
-        tmp(cc.PixelIdxList{idx}) = true;
-        mask = tmp;
+        try
+            mask = bwareaopen(mask, minArea);
+        catch
+            mask = mask;
+        end
+        
+        try
+            mask = imclose(mask, strel('disk', r));
+        catch
+            try
+                se = ones(r*2+1, r*2+1);
+                mask = imerode(mask, se);
+                mask = imdilate(mask, se);
+            catch
+                mask = mask;
+            end
+        end
+        
+        try
+            cc = bwconncomp(mask);
+            if cc.NumObjects < 1, return; end
+            [~, idx] = max(cellfun(@numel, cc.PixelIdxList));
+            tmp = false(size(mask));
+            tmp(cc.PixelIdxList{idx}) = true;
+            mask = tmp;
+        catch
+            mask = mask;
+        end
     end
 
     function result = detectAllDefects(grayImg, gloveMask)
