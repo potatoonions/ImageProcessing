@@ -7,7 +7,7 @@ function member3_nitrile_defect_analysis(subsetSize)
     
     DATASET_DIR = fullfile(fileparts(pwd), "logs", "gloves_dataset");
     GLOVE_TYPE = "Nitrile gloves";
-    DEFECT_TYPES = ["Normal", "InsideOut", "ImproperRoll", "NotWorn"];
+    DEFECT_TYPES = ["Normal", "inside out", "improper roll", "not worn"];
     
     OUT_PROC = fullfile(pwd, "processed");
     OUT_LOGS = fullfile(pwd, "logs");
@@ -33,7 +33,7 @@ function member3_nitrile_defect_analysis(subsetSize)
     if ~isfolder(OUT_LOGS), mkdir(OUT_LOGS); end
     
     procSubs = ["resized", "gray", "filtered_gaussian", "filtered_median", ...
-                "masks", "isolated", "notworn_detection", "improperroll_detection", "insideout_detection"];
+                "masks", "isolated"];
     for s = procSubs
         p = fullfile(OUT_PROC, s);
         if ~isfolder(p), mkdir(p); end
@@ -164,7 +164,7 @@ function member3_nitrile_defect_analysis(subsetSize)
             if notworn.detected
                 notwornStats(end+1,:) = {char(defectType), baseName, notworn.boundaryCount, ...
                     notworn.convexity, notworn.perimeterAreaRatio};
-                exportVisualization(grayImg, gloveMask, notworn, "NotWorn", ...
+                exportVisualization(grayImg, gloveMask, notworn, "Not Worn", ...
                     fullfile(OUT_LOGS, "notworn_detection", GLOVE_TYPE, defectType, ...
                         sprintf("%s_notworn.png", baseName)));
             end
@@ -178,7 +178,7 @@ function member3_nitrile_defect_analysis(subsetSize)
                     improperrollStats(end+1,:) = {char(defectType), baseName, r, F.area, F.perimeter, ...
                         F.solidity, F.eccentricity, F.meanIntensity};
                 end
-                exportVisualization(grayImg, gloveMask, improperroll.regions, "ImproperRoll", ...
+                exportVisualization(grayImg, gloveMask, improperroll.regions, "Improper Roll", ...
                     fullfile(OUT_LOGS, "improperroll_detection", GLOVE_TYPE, defectType, ...
                         sprintf("%s_improperroll.png", baseName)));
             end
@@ -192,7 +192,7 @@ function member3_nitrile_defect_analysis(subsetSize)
                     insideoutStats(end+1,:) = {char(defectType), baseName, r, F.area, F.perimeter, ...
                         F.solidity, F.eccentricity, F.meanIntensity};
                 end
-                exportVisualization(grayImg, gloveMask, insideout.regions, "InsideOut", ...
+                exportVisualization(grayImg, gloveMask, insideout.regions, "Inside Out", ...
                     fullfile(OUT_LOGS, "insideout_detection", GLOVE_TYPE, defectType, ...
                         sprintf("%s_insideout.png", baseName)));
             end
@@ -514,6 +514,4 @@ function exportVisualization(grayImg, gloveMask, data, label, outPath)
     close(f);
 end
 
-function member3_nitrile_defect_analysis_subset(subsetSize)
-    member3_nitrile_defect_analysis(subsetSize);
-end
+

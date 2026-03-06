@@ -87,7 +87,6 @@ classdef NitrileConfig
             fprintf('  Improper Roll: %s (Yellow)\n', cfg.improperRollColor);
             fprintf('  Inside Out: %s (Magenta)\n', cfg.insideOutColor);
             fprintf('  Line Width: %d pixels\n\n', cfg.lineWidth);
-        end
     end
 end
 

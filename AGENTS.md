@@ -37,8 +37,12 @@ Develop a Glove Defect Detection (GDD) system that:
 - member 3 tasks
   - glove type: nitrile
   - defect: inside out, improper roll, not worn
-  - dataset: logs/gloves_dataset/
-  - code: nitrile_gloves_classification/
+   - dataset: logs/gloves_dataset/Nitrile gloves/ (available)
+     - Normal: 663 images
+     - inside out: 6 images
+     - improper roll: 5 images
+     - not worn: 111 images
+   - code: nitrile_gloves_classification/
   - command to run:
     - GUI: matlab -batch "cd nitrile_gloves_classification; NitrileDefectDetectionGUI"
     - Batch (full): matlab -batch "cd nitrile_gloves_classification; addpath(pwd); member3_nitrile_defect_analysis; exit;"
@@ -52,3 +56,4 @@ When working on this project, always:
 4. Check existing code in the repository before implementing new features
 5. Follow the constraints (no Haar Cascade, TensorFlow, or pattern matching)
 6. Ensure the GUI component is properly integrated
+7. Do NOT add random files

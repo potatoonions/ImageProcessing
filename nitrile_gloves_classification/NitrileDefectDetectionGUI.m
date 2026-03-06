@@ -1,8 +1,4 @@
 function NitrileDefectDetectionGUI(varargin)
-    if nargin == 1 && strcmp(func2str(varargin{1}), 'batch')
-        return;
-    end
-    
     persistent appData;
     if isempty(appData), appData = struct(); end
 
@@ -113,7 +109,9 @@ function NitrileDefectDetectionGUI(varargin)
         
         try
             img = appData.currentImage;
-            img = im2uint8(img);
+            if ~isa(img, 'uint8')
+                img = im2uint8(img);
+            end
             img = imresize(img, [256 256]);
             
             if size(img, 3) == 3
@@ -124,11 +122,13 @@ function NitrileDefectDetectionGUI(varargin)
                 hsv01 = rgb2hsv(repmat(img, [1 1 3]));
             end
             
-            gauss = im2uint8(imgaussfilt(im2double(gray), 1.0));
-            med = im2uint8(medfilt2(im2double(gray), [3 3]));
-            
             S = hsv01(:,:,2);
-            mask = imbinarize(S, graythresh(S));
+            try
+                mask = imbinarize(S, graythresh(S));
+            catch
+                thresh = 0.3;
+                mask = S > thresh;
+            end
             mask = cleanMask(mask, 500, 5);
             
             detectionResult = detectAllDefects(gray, mask);
