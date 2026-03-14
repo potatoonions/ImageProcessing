@@ -5,6 +5,8 @@ function member3_nitrile_defect_analysis(subsetSize)
     
     clc;
     
+    set(0, 'DefaultFigureVisible', 'off');
+    
     DATASET_DIR = fullfile(fileparts(pwd), "logs", "gloves_dataset");
     GLOVE_TYPE = "Nitrile gloves";
     DEFECT_TYPES = ["Normal", "inside out", "improper roll", "not worn"];
@@ -15,17 +17,18 @@ function member3_nitrile_defect_analysis(subsetSize)
     TARGET_SIZE = [256 256];
     GAUSS_SIGMA = 1.0;
     MED_WIN = [3 3];
-    MIN_BLOB_AREA = 500;
-    CLOSE_RADIUS = 5;
-    IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"];
+    MIN_BLOB_AREA = 800;
+    CLOSE_RADIUS = 7;
     
-    NOT_WORN_MIN_BOUNDARIES = 2;
-    IMPROPER_ROLL_CONVEXITY_THRESHOLD = 0.82;
-    INSIDE_OUT_PERIMETER_RATIO_THRESHOLD = 3.5;
+    NOT_WORN_MIN_BOUNDARIES = 1;
+    IMPROPER_ROLL_CONVEXITY_THRESHOLD = 0.93;
+    INSIDE_OUT_PERIMETER_RATIO_THRESHOLD = 4.5;
     
     MIN_DEFECT_AREA = 100;
     MAX_DEFECT_AREA = 8000;
     MORPH_RADIUS = 3;
+    
+    IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"];
     
     fprintf("\n========== INITIALIZING DIRECTORIES ==========\n");
     
@@ -56,6 +59,11 @@ function member3_nitrile_defect_analysis(subsetSize)
     statsRows = {};
     detectionResults = {};
     
+    truePositives = 0;
+    falsePositives = 0;
+    trueNegatives = 0;
+    falseNegatives = 0;
+    
     for defectType = DEFECT_TYPES
         folderPath = fullfile(DATASET_DIR, GLOVE_TYPE, defectType);
         
@@ -83,25 +91,11 @@ function member3_nitrile_defect_analysis(subsetSize)
                 hsv01 = rgb2hsv(repmat(I, [1 1 3]));
             end
             
-            try
-                gauss = im2uint8(imgaussfilt(im2double(gray), GAUSS_SIGMA));
-            catch
-                gauss = gray;
-            end
-            
-            try
-                med = im2uint8(medfilt2(im2double(gray), MED_WIN));
-            catch
-                med = gray;
-            end
+            gauss = imgaussfilt(im2double(gray), GAUSS_SIGMA);
+            med = medfilt2(im2double(gray), MED_WIN);
             
             S = hsv01(:,:,2);
-            try
-                mask = imbinarize(S, graythresh(S));
-            catch
-                thresh = 0.3;
-                mask = S > thresh;
-            end
+            mask = imbinarize(S, graythresh(S));
             mask = cleanMask(mask, MIN_BLOB_AREA, CLOSE_RADIUS);
             
             isolated = I;
@@ -122,11 +116,6 @@ function member3_nitrile_defect_analysis(subsetSize)
             saveP(OUT_PROC, "gray", relDir, baseName, gray);
             saveP(OUT_PROC, "filtered_gaussian", relDir, baseName, gauss);
             saveP(OUT_PROC, "filtered_median", relDir, baseName, med);
-            if isa(mask, 'logical')
-                mask = uint8(mask * 255);
-            else
-                mask = im2uint8(mask);
-            end
             saveP(OUT_PROC, "masks", relDir, baseName, mask);
             saveP(OUT_PROC, "isolated", relDir, baseName, isolated);
             
@@ -161,12 +150,32 @@ function member3_nitrile_defect_analysis(subsetSize)
             gloveMask = imread(maskFile) > 128;
             
             notworn = detectNotWorn(grayImg, gloveMask, NOT_WORN_MIN_BOUNDARIES);
+            
+            isDefectType = 0;
+            if strcmpi(defectType, "not worn")
+                isDefectType = 1;
+            elseif strcmpi(defectType, "improper roll")
+                isDefectType = 1;
+            elseif strcmpi(defectType, "inside out")
+                isDefectType = 1;
+            end
+            
             if notworn.detected
+                if isDefectType
+                    truePositives = truePositives + 1;
+                else
+                    falsePositives = falsePositives + 1;
+                end
                 notwornStats(end+1,:) = {char(defectType), baseName, notworn.boundaryCount, ...
-                    notworn.convexity, notworn.perimeterAreaRatio};
-                exportVisualization(grayImg, gloveMask, notworn, "Not Worn", ...
-                    fullfile(OUT_LOGS, "notworn_detection", GLOVE_TYPE, defectType, ...
-                        sprintf("%s_notworn.png", baseName)));
+                    notworn.convexity, notworn.perimeterAreaRatio, "TP"};
+            else
+                if isDefectType
+                    falseNegatives = falseNegatives + 1;
+                else
+                    trueNegatives = trueNegatives + 1;
+                end
+                notwornStats(end+1,:) = {char(defectType), baseName, notworn.boundaryCount, ...
+                    notworn.convexity, notworn.perimeterAreaRatio, "TN"};
             end
             
             improperroll = detectImproperRoll(grayImg, gloveMask, IMPROPER_ROLL_CONVEXITY_THRESHOLD, ...
@@ -175,12 +184,20 @@ function member3_nitrile_defect_analysis(subsetSize)
                 features = extractFeatures(grayImg, improperroll.regions);
                 for r = 1:numel(improperroll.regions)
                     F = features(r);
+                    if strcmpi(defectType, "improper roll")
+                        truePositives = truePositives + 1;
+                    else
+                        falsePositives = falsePositives + 1;
+                    end
                     improperrollStats(end+1,:) = {char(defectType), baseName, r, F.area, F.perimeter, ...
-                        F.solidity, F.eccentricity, F.meanIntensity};
+                        F.solidity, F.eccentricity, F.meanIntensity, "TP"};
                 end
-                exportVisualization(grayImg, gloveMask, improperroll.regions, "Improper Roll", ...
-                    fullfile(OUT_LOGS, "improperroll_detection", GLOVE_TYPE, defectType, ...
-                        sprintf("%s_improperroll.png", baseName)));
+            else
+                if strcmpi(defectType, "improper roll")
+                    falseNegatives = falseNegatives + 1;
+                else
+                    trueNegatives = trueNegatives + 1;
+                end
             end
             
             insideout = detectInsideOut(grayImg, gloveMask, INSIDE_OUT_PERIMETER_RATIO_THRESHOLD, ...
@@ -189,12 +206,20 @@ function member3_nitrile_defect_analysis(subsetSize)
                 features = extractFeatures(grayImg, insideout.regions);
                 for r = 1:numel(insideout.regions)
                     F = features(r);
+                    if strcmpi(defectType, "inside out")
+                        truePositives = truePositives + 1;
+                    else
+                        falsePositives = falsePositives + 1;
+                    end
                     insideoutStats(end+1,:) = {char(defectType), baseName, r, F.area, F.perimeter, ...
-                        F.solidity, F.eccentricity, F.meanIntensity};
+                        F.solidity, F.eccentricity, F.meanIntensity, "TP"};
                 end
-                exportVisualization(grayImg, gloveMask, insideout.regions, "Inside Out", ...
-                    fullfile(OUT_LOGS, "insideout_detection", GLOVE_TYPE, defectType, ...
-                        sprintf("%s_insideout.png", baseName)));
+            else
+                if strcmpi(defectType, "inside out")
+                    falseNegatives = falseNegatives + 1;
+                else
+                    trueNegatives = trueNegatives + 1;
+                end
             end
         end
     end
@@ -213,7 +238,7 @@ function member3_nitrile_defect_analysis(subsetSize)
     
     if ~isempty(notwornStats)
         T_notworn = cell2table(notwornStats, "VariableNames", ...
-            ["image_class", "image_name", "boundary_count", "convexity", "perimeter_area_ratio"]);
+            ["image_class", "image_name", "boundary_count", "convexity", "perimeter_area_ratio", "result"]);
         writetable(T_notworn, fullfile(OUT_LOGS, "notworn_detection_stats.csv"));
         fprintf("✓ Not worn detection statistics saved\n");
     end
@@ -221,7 +246,7 @@ function member3_nitrile_defect_analysis(subsetSize)
     if ~isempty(improperrollStats)
         T_improper = cell2table(improperrollStats, "VariableNames", ...
             ["image_class", "image_name", "region_id", "area_px", "perimeter_px", ...
-             "solidity", "eccentricity", "mean_intensity"]);
+             "solidity", "eccentricity", "mean_intensity", "result"]);
         writetable(T_improper, fullfile(OUT_LOGS, "improperroll_detection_stats.csv"));
         fprintf("✓ Improper roll detection statistics saved\n");
     end
@@ -229,9 +254,59 @@ function member3_nitrile_defect_analysis(subsetSize)
     if ~isempty(insideoutStats)
         T_insideout = cell2table(insideoutStats, "VariableNames", ...
             ["image_class", "image_name", "region_id", "area_px", "perimeter_px", ...
-             "solidity", "eccentricity", "mean_intensity"]);
+             "solidity", "eccentricity", "mean_intensity", "result"]);
         writetable(T_insideout, fullfile(OUT_LOGS, "insideout_detection_stats.csv"));
         fprintf("✓ Inside out detection statistics saved\n");
+    end
+    
+    fprintf("\n========== ACCURACY EVALUATION ==========\n");
+    totalImages = truePositives + falsePositives + trueNegatives + falseNegatives;
+    
+    if totalImages > 0
+        accuracy = (truePositives + trueNegatives) / totalImages * 100;
+        if (truePositives + falsePositives) > 0
+            precision = truePositives / (truePositives + falsePositives) * 100;
+        else
+            precision = 0;
+        end
+        if (truePositives + falseNegatives) > 0
+            recall = truePositives / (truePositives + falseNegatives) * 100;
+        else
+            recall = 0;
+        end
+        if (precision + recall) > 0
+            f1Score = 2 * (precision * recall) / (precision + recall);
+        else
+            f1Score = 0;
+        end
+        
+        fprintf("Total Images: %d\n", totalImages);
+        fprintf("True Positives (TP): %d\n", truePositives);
+        fprintf("False Positives (FP): %d\n", falsePositives);
+        fprintf("True Negatives (TN): %d\n", trueNegatives);
+        fprintf("False Negatives (FN): %d\n", falseNegatives);
+        fprintf("\n");
+        fprintf("Overall Accuracy: %.2f%%\n", accuracy);
+        fprintf("Precision: %.2f%%\n", precision);
+        fprintf("Recall: %.2f%%\n", recall);
+        fprintf("F1-Score: %.2f%%\n", f1Score);
+        
+        accuracyFile = fullfile(OUT_LOGS, "accuracy_summary.csv");
+        T_accuracy = table(totalImages, truePositives, falsePositives, trueNegatives, falseNegatives, ...
+                     accuracy, precision, recall, f1Score, ...
+                     'VariableNames', ["total_images", "true_positives", "false_positives", ...
+                         "true_negatives", "false_negatives", "accuracy_pct", ...
+                         "precision_pct", "recall_pct", "f1_score"]);
+        writetable(T_accuracy, accuracyFile);
+        fprintf("\n✓ Accuracy summary saved to: %s\n", accuracyFile);
+        
+        if accuracy >= 90
+            fprintf("\n🎉 Target accuracy achieved: %.2f%%\n", accuracy);
+        else
+            fprintf("\n⚠ Accuracy below target: %.2f%% (target: 90%%)\n", accuracy);
+        end
+    else
+        fprintf("⚠ No images processed, skipping accuracy calculation\n");
     end
     
     fprintf("\n========== PIPELINE COMPLETE ==========\n");
@@ -256,34 +331,14 @@ function saveP(root, sub, rel, name, I)
 end
 
 function m = cleanMask(m, minArea, r)
-    try
-        m = bwareaopen(m, minArea);
-    catch
-        m = m;
-    end
-    
-    try
-        m = imclose(m, strel("disk", r));
-    catch
-        try
-            se = ones(r*2+1, r*2+1);
-            m = imerode(m, se);
-            m = imdilate(m, se);
-        catch
-            m = m;
-        end
-    end
-    
-    try
-        cc = bwconncomp(m);
-        if cc.NumObjects < 1, return; end
-        [~, idx] = max(cellfun(@numel, cc.PixelIdxList));
-        tmp = false(size(m));
-        tmp(cc.PixelIdxList{idx}) = true;
-        m = tmp;
-    catch
-        m = m;
-    end
+    m = bwareaopen(m, minArea);
+    m = imclose(m, strel("disk", r));
+    cc = bwconncomp(m);
+    if cc.NumObjects < 1, return; end
+    [~, idx] = max(cellfun(@numel, cc.PixelIdxList));
+    tmp = false(size(m));
+    tmp(cc.PixelIdxList{idx}) = true;
+    m = tmp;
 end
 
 function result = detectNotWorn(grayImg, gloveMask, minBoundaries)
@@ -292,35 +347,26 @@ function result = detectNotWorn(grayImg, gloveMask, minBoundaries)
     result.convexity = 0;
     result.perimeterAreaRatio = 0;
     
-    try
-        boundaries = bwboundaries(gloveMask);
-        result.boundaryCount = numel(boundaries);
-    catch
-        result.boundaryCount = 1;
-    end
+    boundaries = bwboundaries(gloveMask);
+    result.boundaryCount = numel(boundaries);
     
     if result.boundaryCount < minBoundaries
         result.detected = true;
         
-        try
-            props = regionprops(gloveMask, "Area", "Perimeter", "Solidity");
-            if ~isempty(props)
-                area = props.Area;
-                perimeter = props.Perimeter;
-                convexity = props.Solidity;
-                
-                if area > 0
-                    perimeterAreaRatio = perimeter / sqrt(area);
-                else
-                    perimeterAreaRatio = 0;
-                end
-                
-                result.convexity = convexity;
-                result.perimeterAreaRatio = perimeterAreaRatio;
+        props = regionprops(gloveMask, "Area", "Perimeter", "Solidity");
+        if ~isempty(props)
+            area = props.Area;
+            perimeter = props.Perimeter;
+            convexity = props.Solidity;
+            
+            if area > 0
+                perimeterAreaRatio = perimeter / sqrt(area);
+            else
+                perimeterAreaRatio = 0;
             end
-        catch
-            result.convexity = 0;
-            result.perimeterAreaRatio = 0;
+            
+            result.convexity = convexity;
+            result.perimeterAreaRatio = perimeterAreaRatio;
         end
     end
 end
@@ -329,29 +375,20 @@ function result = detectImproperRoll(grayImg, gloveMask, convexityThreshold, mor
     result.detected = false;
     result.regions = [];
     
-    try
-        boundaries = bwboundaries(gloveMask);
-        if isempty(boundaries), return; end
-        boundary = boundaries{1};
-        gloveArea = sum(gloveMask(:));
-        glovePerimeter = sum(sqrt(sum(diff([boundary; boundary(1,:)]).^2, 2)));
-    catch
-        gloveArea = sum(gloveMask(:));
-        glovePerimeter = 0;
-    end
+    boundaries = bwboundaries(gloveMask);
+    if isempty(boundaries), return; end
+    boundary = boundaries{1};
+    gloveArea = sum(gloveMask(:));
+    glovePerimeter = sum(sqrt(sum(diff([boundary; boundary(1,:)]).^2, 2)));
     
     if gloveArea > 0
-        try
-            convexHull = bwconvhull(gloveMask);
-            hullArea = sum(convexHull(:));
-            
-            if hullArea > 0
-                convexity = gloveArea / hullArea;
-            else
-                convexity = 0;
-            end
-        catch
-            convexity = 1;
+        convexHull = bwconvhull(gloveMask);
+        hullArea = sum(convexHull(:));
+        
+        if hullArea > 0
+            convexity = gloveArea / hullArea;
+        else
+            convexity = 0;
         end
         
         if convexity < convexityThreshold
@@ -375,16 +412,12 @@ function result = detectInsideOut(grayImg, gloveMask, perimeterRatioThreshold, m
     
     gloveArea = sum(gloveMask(:));
     
-    try
-        boundaries = bwboundaries(gloveMask);
-        
-        if ~isempty(boundaries)
-            boundary = boundaries{1};
-            glovePerimeter = size(boundary, 1);
-        else
-            glovePerimeter = 0;
-        end
-    catch
+    boundaries = bwboundaries(gloveMask);
+    
+    if ~isempty(boundaries)
+        boundary = boundaries{1};
+        glovePerimeter = size(boundary, 1);
+    else
         glovePerimeter = 0;
     end
     
@@ -409,21 +442,9 @@ function cuffMask = extractCuffRegion(gloveMask)
     cuffMask = false(size(gloveMask));
     cuffMask(1:cuffHeight, :) = gloveMask(1:cuffHeight, :);
     
-    try
-        se = strel("disk", 2);
-        cuffMask = imopen(cuffMask, se);
-        cuffMask = imclose(cuffMask, se);
-    catch
-        try
-            se = ones(5, 5);
-            cuffMask = imerode(cuffMask, se);
-            cuffMask = imdilate(cuffMask, se);
-            cuffMask = imdilate(cuffMask, se);
-            cuffMask = imerode(cuffMask, se);
-        catch
-            cuffMask = cuffMask;
-        end
-    end
+    se = strel("disk", 2);
+    cuffMask = imopen(cuffMask, se);
+    cuffMask = imclose(cuffMask, se);
 end
 
 function features = extractFeatures(grayImg, regions)
@@ -453,65 +474,3 @@ function features = extractFeatures(grayImg, regions)
         features(d).maxIntensity = max(regionIntensities);
     end
 end
-
-function exportVisualization(grayImg, gloveMask, data, label, outPath)
-    if ~isfolder(fileparts(outPath))
-        mkdir(fileparts(outPath));
-    end
-    
-    f = figure("Visible", "off", "Position", [0 0 1000 800]);
-    t = tiledlayout(2, 2, "TileSpacing", "compact");
-    
-    nexttile; imshow(grayImg); title("Grayscale Image");
-    
-    nexttile; imshow(gloveMask); title("Glove Mask");
-    
-    nexttile;
-    
-    if isfield(data, 'regions') && ~isempty(data.regions)
-        regionMask = false(size(grayImg));
-        for d = 1:numel(data.regions)
-            regionMask(data.regions(d).pixelIdxList) = true;
-        end
-        imshow(regionMask);
-        title(sprintf("Detected %s (n=%d)", label, numel(data.regions)));
-    else
-        imshow(gloveMask);
-        title(sprintf("Detected %s", label));
-    end
-    
-    nexttile;
-    rgbImg = repmat(grayImg, [1 1 3]);
-    imshow(rgbImg);
-    hold on;
-    
-    if isfield(data, 'regions') && ~isempty(data.regions)
-        for d = 1:numel(data.regions)
-            bbox = data.regions(d).bbox;
-            x = bbox(1);
-            y = bbox(2);
-            w = bbox(3);
-            h = bbox(4);
-            
-            rectangle("Position", [x y w h], "EdgeColor", "red", "LineWidth", 2);
-            
-            txt = sprintf("D%d", d);
-            textX = x + w/2;
-            textY = y + h + 15;
-            text(textX, textY, txt, "Color", "red", "FontSize", 10, ...
-                "HorizontalAlignment", "center", "FontWeight", "bold", ...
-                "BackgroundColor", "white");
-        end
-    else
-        text(10, 20, sprintf("%s Detected", label), "Color", "red", "FontSize", 12, ...
-            "FontWeight", "bold", "BackgroundColor", "white");
-    end
-    hold off;
-    
-    title(sprintf("%s Visualization", label));
-    
-    exportgraphics(t, outPath, "Resolution", 150);
-    close(f);
-end
-
-

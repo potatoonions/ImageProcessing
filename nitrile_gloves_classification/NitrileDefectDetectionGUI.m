@@ -154,6 +154,12 @@ function NitrileDefectDetectionGUI(varargin)
         'BackgroundColor', [0.8 0.3 0.3], 'ForegroundColor', [1 1 1], ...
         'Callback', @(src, evt) resetGUI(fig));
 
+    uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Run Batch', ...
+        'Units', 'normalized', 'Position', [0.05 0.30 0.20 0.60], ...
+        'FontSize', 11, 'FontWeight', 'bold', ...
+        'BackgroundColor', [0.6 0.4 0.2], 'ForegroundColor', [1 1 1], ...
+        'Callback', @(src, evt) runBatchProcessing(fig));
+    
     uicontrol(buttonPanel, 'Style', 'pushbutton', 'String', 'Save Settings', ...
         'Units', 'normalized', 'Position', [0.73 0.30 0.15 0.60], ...
         'FontSize', 11, 'FontWeight', 'bold', ...
@@ -446,6 +452,30 @@ function NitrileDefectDetectionGUI(varargin)
     function closeApp()
         if isfield(appData, 'fig') && ishandle(appData.fig)
             delete(appData.fig);
+        end
+    end
+
+    function runBatchProcessing(fig)
+        batchSize = inputdlg('Enter number of images per class to process (or leave blank for all):', ...
+            'Batch Processing', 1, {'10', '20', '50', ''}, 'on');
+        
+        if isempty(batchSize) || batchSize{1} == ''
+            subsetSize = Inf;
+        else
+            subsetSize = str2double(batchSize{1});
+        end
+        
+        set(appData.resultText, 'String', 'Running batch processing...');
+        drawnow;
+        
+        try
+            addpath(pwd);
+            member3_nitrile_defect_analysis(subsetSize);
+            set(appData.resultText, 'String', 'Batch processing complete. Check logs/accuracy_summary.csv');
+            msgbox('Batch processing complete. Results saved to logs/accuracy_summary.csv', 'Batch Complete', 'help');
+        catch ME
+            set(appData.resultText, 'String', ['Batch error: ', ME.message]);
+            errordlg(['Batch processing error: ', ME.message], 'Batch Error');
         end
     end
 
