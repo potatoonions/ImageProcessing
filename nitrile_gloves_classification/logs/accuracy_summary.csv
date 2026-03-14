@@ -1,0 +1,2 @@
+total_images,true_positives,false_positives,true_negatives,false_negatives,accuracy_pct,precision_pct,recall_pct,f1_score
+153,31,20,91,11,79.7385620915033,60.7843137254902,73.8095238095238,66.6666666666667

@@ -1,5 +1,52 @@
-image_class,image_name,boundary_count,convexity,perimeter_area_ratio
-Normal,1671096967238,1,0,0
-inside out,Gemini_Generated_Image_a3umbxa3umbxa3um,1,0,0
-improper roll,Gemini_Generated_Image_2eq3cp2eq3cp2eq3,1,0,0
-not worn,1671096967238,1,0,0
+image_class,image_name,boundary_count,convexity,perimeter_area_ratio,result
+Normal,1671096967238,0,0,0,TP
+Normal,1671096967238_l,0,0,0,TP
+Normal,1671096967238_r,0,0,0,TP
+Normal,1671096971074,0,0,0,TP
+Normal,1671096971074_l,0,0,0,TP
+Normal,1671096971074_r,0,0,0,TP
+Normal,1671096974008,0,0,0,TP
+Normal,1671096974008_l,0,0,0,TP
+Normal,1671096974008_r,0,0,0,TP
+Normal,1671096977811,0,0,0,TP
+Normal,1671096977811_l,0,0,0,TP
+Normal,1671096977811_r,0,0,0,TP
+Normal,1671096980813,0,0,0,TP
+Normal,1671096980813_l,0,0,0,TP
+Normal,1671096980813_r,0,0,0,TP
+Normal,1671096984949,0,0,0,TP
+Normal,1671096984949_l,0,0,0,TP
+Normal,1671096984949_r,0,0,0,TP
+Normal,1671096987650,0,0,0,TP
+Normal,1671096987650_l,0,0,0,TP
+inside out,Gemini_Generated_Image_a3umbxa3umbxa3um,0,0,0,TP
+inside out,Gemini_Generated_Image_csq4i7csq4i7csq4,0,0,0,TP
+inside out,Gemini_Generated_Image_fbd2pyfbd2pyfbd2,0,0,0,TP
+inside out,Gemini_Generated_Image_ranmu7ranmu7ranm,0,0,0,TP
+inside out,Gemini_Generated_Image_vpeuijvpeuijvpeu,0,0,0,TP
+inside out,Gemini_Generated_Image_yo6jueyo6jueyo6j,0,0,0,TP
+improper roll,Gemini_Generated_Image_2eq3cp2eq3cp2eq3,0,0,0,TP
+improper roll,Gemini_Generated_Image_atknc5atknc5atkn,0,0,0,TP
+improper roll,Gemini_Generated_Image_ddst9ddst9ddst9d,0,0,0,TP
+improper roll,Gemini_Generated_Image_owi17powi17powi1,0,0,0,TP
+improper roll,Gemini_Generated_Image_xtlfboxtlfboxtlf,0,0,0,TP
+not worn,1671096967238,0,0,0,TP
+not worn,1671096971074,0,0,0,TP
+not worn,1671096974008,0,0,0,TP
+not worn,1671096977811,0,0,0,TP
+not worn,1671096980813,0,0,0,TP
+not worn,1671096984949,0,0,0,TP
+not worn,1671096987650,0,0,0,TP
+not worn,1671096990550,0,0,0,TP
+not worn,1671096993153,0,0,0,TP
+not worn,1671096996154,0,0,0,TP
+not worn,1671097000056,0,0,0,TP
+not worn,1671097002790,0,0,0,TP
+not worn,1671097005059,0,0,0,TP
+not worn,1671097007861,0,0,0,TP
+not worn,1671097011962,0,0,0,TP
+not worn,1671097015098,0,0,0,TP
+not worn,1671097018267,0,0,0,TP
+not worn,1671097021336,0,0,0,TP
+not worn,1671097024203,0,0,0,TP
+not worn,1671097027304,0,0,0,TP
