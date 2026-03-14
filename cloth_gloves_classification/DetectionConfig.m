@@ -3,36 +3,36 @@
 
 classdef DetectionConfig
     properties (Constant)
-        TARGET_IMAGE_SIZE = [256 256]          % Resize all images to this size
-        GAUSSIAN_SIGMA = 1.0                   % Gaussian blur sigma parameter
-        MEDIAN_FILTER_SIZE = [3 3]             % Median filter kernel size
+        TARGET_IMAGE_SIZE = [256 256]
+        GAUSSIAN_SIGMA = 1.0
+        MEDIAN_FILTER_SIZE = [3 3]
         
-        MIN_BLOB_AREA = 200                    % Minimum blob area for mask
-        CLOSE_RADIUS = 5                       % Morphological closing radius
+        MIN_BLOB_AREA = 200
+        CLOSE_RADIUS = 5
         
-        HOLE_INTENSITY_THRESHOLD = 100         % Pixels darker than this are holes
-        HOLE_MIN_AREA = 50                     % Minimum hole area (pixels)
-        HOLE_MAX_AREA = 5000                   % Maximum hole area (pixels)
-        HOLE_MORPH_RADIUS = 2                  % Morphology radius for holes
+        HOLE_INTENSITY_THRESHOLD = 100
+        HOLE_MIN_AREA = 50
+        HOLE_MAX_AREA = 5000
+        HOLE_MORPH_RADIUS = 2
         
-        SNAG_UPPER_THRESHOLD = 130             % Upper intensity boundary
-        SNAG_LOWER_THRESHOLD = 70              % Lower intensity boundary
-        SNAG_MIN_AREA = 50                     % Minimum snag area (pixels)
-        SNAG_MAX_AREA = 5000                   % Maximum snag area (pixels)
-        SNAG_MORPH_RADIUS = 2                  % Morphology radius for snags
+        SNAG_UPPER_THRESHOLD = 130
+        SNAG_LOWER_THRESHOLD = 70
+        SNAG_MIN_AREA = 50
+        SNAG_MAX_AREA = 5000
+        SNAG_MORPH_RADIUS = 2
         
-        STAIN_TEXTURE_THRESHOLD = 15           % Local standard deviation threshold
-        STAIN_INTENSITY_MIN = 100              % Minimum intensity for stains
-        STAIN_INTENSITY_MAX = 200              % Maximum intensity for stains
-        STAIN_MIN_AREA = 50                    % Minimum stain area (pixels)
-        STAIN_MAX_AREA = 5000                  % Maximum stain area (pixels)
-        STAIN_MORPH_RADIUS = 2                 % Morphology radius for stains
-        STAIN_TEXTURE_WINDOW = 5               % Local std calculation window
+        STAIN_TEXTURE_THRESHOLD = 15
+        STAIN_INTENSITY_MIN = 100
+        STAIN_INTENSITY_MAX = 200
+        STAIN_MIN_AREA = 50
+        STAIN_MAX_AREA = 5000
+        STAIN_MORPH_RADIUS = 2
+        STAIN_TEXTURE_WINDOW = 5
         
-        HOLE_COLOR = 'r'                       % Hole boundary color (red)
-        SNAG_COLOR = 'y'                       % Snag boundary color (yellow)
-        STAIN_COLOR = 'm'                      % Stain boundary color (magenta)
-        DEFECT_LINE_WIDTH = 2                  % Defect boundary line width
+        HOLE_COLOR = 'r'
+        SNAG_COLOR = 'y'
+        STAIN_COLOR = 'm'
+        DEFECT_LINE_WIDTH = 2
     end
     
     methods (Static)
