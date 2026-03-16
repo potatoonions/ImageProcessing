@@ -9,7 +9,7 @@ function member3_nitrile_defect_analysis(subsetSize)
     
     DATASET_DIR = fullfile(fileparts(pwd), "logs", "gloves_dataset");
     GLOVE_TYPE = "Nitrile gloves";
-    DEFECT_TYPES = ["Normal", "inside out", "improper roll", "not worn"];
+    DEFECT_TYPES = ["inside out", "improper roll", "not worn"];
     
     OUT_PROC = fullfile(pwd, "processed");
     OUT_LOGS = fullfile(pwd, "logs");
