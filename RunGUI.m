@@ -70,11 +70,11 @@ function createHomePage()
     
     % Button 4: Nitrile Gloves (Purple)
     uicontrol(buttonPanel, 'Style', 'pushbutton', ...
-        'String', sprintf('Nitrile Gloves\n(Coming Soon)'), ...
+        'String', sprintf('Nitrile Gloves\n(Not Worn, Inside Out, Improper Roll)'), ...
         'Units', 'normalized', 'Position', [0.55 0.05 0.40 0.40], ...
         'FontSize', 14, 'FontWeight', 'bold', ...
         'BackgroundColor', [0.7 0.2 0.8], 'ForegroundColor', [1 1 1], ...
-        'Enable', 'off');
+        'Callback', @launchNitrileGloves);
     
     % Bottom info
     uicontrol(mainPanel, 'Style', 'text', ...
@@ -144,6 +144,26 @@ function launchPlasticGloves(~, ~)
     else
         msgbox('Angel folder not found!', 'Error', 'error');
         fprintf('✗ Folder not found: %s\n', plasticPath);
+    end
+end
+
+function launchNitrileGloves(~, ~)
+% Launch Nitrile Gloves detection GUI
+    fprintf('\nLaunching Nitrile Gloves Defect Detection...\n');
+    
+    nitrilePath = fullfile(pwd, 'nitrile_gloves_classification');
+    if isfolder(nitrilePath)
+        addpath(nitrilePath);
+        try
+            NitrileDefectDetectionGUI();
+            fprintf('✓ Nitrile Gloves GUI started successfully\n');
+        catch ME
+            msgbox(['Error starting Nitrile Gloves GUI: ' ME.message], 'Error', 'error');
+            fprintf('✗ Error: %s\n', ME.message);
+        end
+    else
+        msgbox('nitrile_gloves_classification folder not found!', 'Error', 'error');
+        fprintf('✗ Folder not found: %s\n', nitrilePath);
     end
 end
 
