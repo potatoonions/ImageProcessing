@@ -1,5 +1,12 @@
 %% GLOVE DEFECT DETECTION - CONFIGURATION FILE
 % Adjust parameters here. No need to edit GloveDefectDetectionGUI.m
+% 
+% NOTE: Stain detection now uses a multi-approach method that detects:
+%   - Dark stains (dirt, blood, oxidation)
+%   - Bright stains (bleach, chemical discoloration)
+%   - Texture-based stains (uniform discoloration)
+%   - Faint stains (concentration-based)
+% This replaces the previous single-approach texture-only detection.
 
 classdef DetectionConfig
     properties (Constant)
@@ -21,6 +28,7 @@ classdef DetectionConfig
         SNAG_MAX_AREA = 5000
         SNAG_MORPH_RADIUS = 2
         
+        % Stain detection parameters (Note: new multi-approach detection in use)
         STAIN_TEXTURE_THRESHOLD = 15
         STAIN_INTENSITY_MIN = 100
         STAIN_INTENSITY_MAX = 200

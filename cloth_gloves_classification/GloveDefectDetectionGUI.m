@@ -226,15 +226,24 @@ try
     % Snag detection: medium dark regions
     snagPixels = ((gray >= (mainIntensity - 50)) & (gray <= (mainIntensity - 10))) & contourRegion;
     
-    % Stain detection: Use texture-based detection for visible dirt/discoloration
-    % Stains appear as regions with different texture (higher local std deviation)
-    % and darker than expected
+    % Stain detection: Comprehensive multi-approach detection for various stain types
+    % Stains can be: dark spots (dirt, blood), bright spots (bleach), or texture changes
     localStd = stdfilt(double(gray), ones(5, 5));
-    stainPixels = (localStd > 12) & (gray < (mainIntensity + 20)) & (gray > (mainIntensity - 40)) & contourRegion;
     
-    % Also detect very faint stains using intensity deviation alone
-    stainPixels2 = ((gray >= (mainIntensity - 25)) & (gray <= (mainIntensity + 5))) & contourRegion;
-    stainPixels = stainPixels | stainPixels2;
+    % Approach 1: Dark stains (dirt, blood, oxidation) - significantly darker than glove
+    darkStains = (gray < (mainIntensity - 35)) & (localStd > 8) & contourRegion;
+    
+    % Approach 2: Bright stains (bleach, chemical discoloration) - brighter than glove
+    brightStains = (gray > (mainIntensity + 25)) & (localStd > 8) & contourRegion;
+    
+    % Approach 3: Texture-based stains (uniform discoloration) - intensity near mean but texture different
+    textureStains = (localStd > 10) & (gray > (mainIntensity - 50)) & (gray < (mainIntensity + 30)) & contourRegion;
+    
+    % Approach 4: Faint uniform stains - no texture requirement, concentration-based
+    faintStains = ((gray >= (mainIntensity - 30)) & (gray <= (mainIntensity - 5))) & contourRegion;
+    
+    % Combine all stain detection approaches
+    stainPixels = darkStains | brightStains | textureStains | faintStains;
     
     % Clean stain pixels with morphological operations
     se = strel("disk", 2);

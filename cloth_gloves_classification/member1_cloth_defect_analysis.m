@@ -355,13 +355,32 @@ function defects = detectDefects(grayImg, gloveMask, threshold, morphRad, minAre
 end
 
 function defects = detectStains(grayImg, gloveMask, threshold, morphRad, minArea, maxArea)
-    % Detects stains using texture analysis with aspect ratio filtering
-    % Incorporates Python approaches: aspect ratio filtering, point-in-polygon testing
-    % Stains appear as regions with different intensity characteristics
+    % Detects stains using multi-approach detection for various stain types
+    % Incorporates: texture analysis, intensity-based detection, aspect ratio filtering
+    % Stains can be: dark spots (dirt, blood), bright spots (bleach), or texture changes
+    
+    % Calculate glove statistics for relative intensity thresholding
+    glovePixels = grayImg(gloveMask);
+    meanIntensity = mean(glovePixels);
     
     % Use local standard deviation to find texture changes
     localStd = stdfilt(double(grayImg), ones(5, 5));
-    stainPixels = localStd > 15 & grayImg > threshold;
+    
+    % Multi-approach stain detection:
+    % Approach 1: Dark stains (dirt, blood, oxidation) - significantly darker than glove
+    darkStains = (grayImg < (meanIntensity - 35)) & (localStd > 8);
+    
+    % Approach 2: Bright stains (bleach, chemical discoloration) - brighter than glove
+    brightStains = (grayImg > (meanIntensity + 25)) & (localStd > 8);
+    
+    % Approach 3: Texture-based stains (uniform discoloration) - intensity near mean but texture different
+    textureStains = (localStd > 10) & (grayImg > (meanIntensity - 50)) & (grayImg < (meanIntensity + 30));
+    
+    % Approach 4: Faint uniform stains - concentration-based without high texture requirement
+    faintStains = ((grayImg >= (meanIntensity - 30)) & (grayImg <= (meanIntensity - 5)));
+    
+    % Combine all stain detection approaches
+    stainPixels = darkStains | brightStains | textureStains | faintStains;
     
     % Morphological processing
     se = strel("disk", morphRad);
