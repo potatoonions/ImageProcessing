@@ -55,7 +55,7 @@ function NitrileDefectDetectionGUI(varargin)
         'FontSize', 10, 'BackgroundColor', [0.94 0.94 0.94]);
     
     appData.notWornBoundaries = uicontrol(col1, 'Style', 'edit', ...
-        'String', '2', 'Units', 'normalized', 'Position', [0.55 0.83 0.25 0.08], ...
+        'String', '1', 'Units', 'normalized', 'Position', [0.55 0.83 0.25 0.08], ...
         'FontSize', 10, 'BackgroundColor', 'white', 'Callback', @(src,evt) updateParams());
 
     uicontrol(col1, 'Style', 'text', 'String', 'IMPROPER ROLL SETTINGS', ...
@@ -67,7 +67,7 @@ function NitrileDefectDetectionGUI(varargin)
         'FontSize', 10, 'BackgroundColor', [0.94 0.94 0.94]);
     
     appData.improperConvexity = uicontrol(col1, 'Style', 'edit', ...
-        'String', '0.82', 'Units', 'normalized', 'Position', [0.55 0.61 0.25 0.08], ...
+        'String', '0.93', 'Units', 'normalized', 'Position', [0.55 0.61 0.25 0.08], ...
         'FontSize', 10, 'BackgroundColor', 'white', 'Callback', @(src,evt) updateParams());
 
     uicontrol(col1, 'Style', 'text', 'String', 'INSIDE OUT SETTINGS', ...
@@ -79,7 +79,7 @@ function NitrileDefectDetectionGUI(varargin)
         'FontSize', 10, 'BackgroundColor', [0.94 0.94 0.94]);
     
     appData.insideOutRatio = uicontrol(col1, 'Style', 'edit', ...
-        'String', '3.5', 'Units', 'normalized', 'Position', [0.55 0.39 0.25 0.08], ...
+        'String', '4.5', 'Units', 'normalized', 'Position', [0.55 0.39 0.25 0.08], ...
         'FontSize', 10, 'BackgroundColor', 'white', 'Callback', @(src,evt) updateParams());
 
     col2 = uipanel(settingsPanel, 'Position', [0.34 0.15 0.32 0.80], ...
@@ -94,7 +94,7 @@ function NitrileDefectDetectionGUI(varargin)
         'FontSize', 10, 'BackgroundColor', [0.94 0.94 0.94]);
     
     appData.minBlobArea = uicontrol(col2, 'Style', 'edit', ...
-        'String', '500', 'Units', 'normalized', 'Position', [0.55 0.83 0.25 0.08], ...
+        'String', '800', 'Units', 'normalized', 'Position', [0.55 0.83 0.25 0.08], ...
         'FontSize', 10, 'BackgroundColor', 'white', 'Callback', @(src,evt) updateParams());
     
     uicontrol(col2, 'Style', 'text', 'String', 'Close Radius:', ...
@@ -102,7 +102,7 @@ function NitrileDefectDetectionGUI(varargin)
         'FontSize', 10, 'BackgroundColor', [0.94 0.94 0.94]);
     
     appData.closeRadius = uicontrol(col2, 'Style', 'edit', ...
-        'String', '5', 'Units', 'normalized', 'Position', [0.55 0.70 0.25 0.08], ...
+        'String', '7', 'Units', 'normalized', 'Position', [0.55 0.70 0.25 0.08], ...
         'FontSize', 10, 'BackgroundColor', 'white', 'Callback', @(src,evt) updateParams());
 
     col3 = uipanel(settingsPanel, 'Position', [0.67 0.15 0.32 0.80], ...
@@ -196,6 +196,7 @@ function NitrileDefectDetectionGUI(varargin)
                 appData.currentImage = repmat(appData.currentImage, [1 1 3]);
             end
             
+            % standardize image
             appData.currentImage = imresize(appData.currentImage, [256 256]);
             
             axes(appData.displayAx);
@@ -231,6 +232,7 @@ function NitrileDefectDetectionGUI(varargin)
         try
             img = appData.currentImage;
             
+            % convert to grayscale and hsv to extract saturation
             if size(img, 3) == 3
                 gray = rgb2gray(img);
                 hsv01 = rgb2hsv(img);
@@ -245,6 +247,7 @@ function NitrileDefectDetectionGUI(varargin)
             minBlobArea = str2double(get(appData.minBlobArea, 'String'));
             closeRadius = str2double(get(appData.closeRadius, 'String'));
             
+            % otsu thresholding
             S = hsv01(:,:,2);
             try
                 mask = imbinarize(S, graythresh(S));
@@ -309,7 +312,10 @@ function NitrileDefectDetectionGUI(varargin)
             
             hold off;
             axis(appData.displayAx, 'off');
-            
+
+            % Determine classification based on independent detector results
+            % Each detector operates independently - multiple defects can be detected
+            % Display priority: Not Worn > Improper Roll > Inside Out > Normal
             resultText = 'Normal';
             if detectionResult.notWorn
                 resultText = 'Not Worn';
@@ -319,10 +325,28 @@ function NitrileDefectDetectionGUI(varargin)
                 resultText = 'Inside Out';
             end
             appData.classificationResult = resultText;
-            
-            featureInfo = sprintf('Features: Boundaries=%d, Convexity=%.3f, Perim/Area=%.2f', ...
-                detectionResult.boundaryCount, detectionResult.convexity, detectionResult.perimeterAreaRatio);
-            set(appData.resultText, 'String', ['Classification: ', resultText, ' | ', featureInfo]);
+
+            % Build detailed defect status string showing all detector results independently
+            defectStatus = {};
+            if detectionResult.notWorn
+                defectStatus{end+1} = 'Not Worn: YES';
+            else
+                defectStatus{end+1} = 'Not Worn: NO';
+            end
+            if ~isempty(detectionResult.improperRoll)
+                defectStatus{end+1} = sprintf('Improper Roll: YES (%d)', numel(detectionResult.improperRoll));
+            else
+                defectStatus{end+1} = 'Improper Roll: NO';
+            end
+            if ~isempty(detectionResult.insideOut)
+                defectStatus{end+1} = sprintf('Inside Out: YES (%d)', numel(detectionResult.insideOut));
+            else
+                defectStatus{end+1} = 'Inside Out: NO';
+            end
+            detailedInfo = sprintf('B=%d C=%.3f P/A=%.2f | %s', ...
+                detectionResult.boundaryCount, detectionResult.convexity, detectionResult.perimeterAreaRatio, ...
+                strjoin(defectStatus, ' | '));
+            set(appData.resultText, 'String', ['Classification: ', resultText, ' | ', detailedInfo]);
             
             appData.verifyBtn.Visible = 'on';
             
@@ -481,6 +505,15 @@ function NitrileDefectDetectionGUI(varargin)
     end
 
     function result = detectAllDefects(grayImg, gloveMask, notWornMinBoundaries, improperConvexity, insideOutRatio)
+        % Detects all three nitrile defects using INDEPENDENT detection methods
+        % Each detector operates independently - multiple defects can be detected
+        % Matches member3_nitrile_defect_analysis.m detection logic
+        %
+        % Detection methods (independent):
+        % - Not Worn: boundary count < threshold
+        % - Improper Roll: convexity analysis of cuff region
+        % - Inside Out: perimeter-to-area ratio analysis
+        
         result = struct();
         result.notWorn = false;
         result.improperRoll = [];
@@ -488,37 +521,40 @@ function NitrileDefectDetectionGUI(varargin)
         result.boundaryCount = 0;
         result.convexity = 0;
         result.perimeterAreaRatio = 0;
-        
+
+        % Get boundary count
         try
             boundaries = bwboundaries(gloveMask);
             boundaryCount = numel(boundaries);
         catch
             boundaryCount = 1;
         end
-        
         result.boundaryCount = boundaryCount;
-        
-        if boundaryCount < notWornMinBoundaries
-            result.notWorn = true;
-            return;
-        end
-        
+
+        % Get glove properties
         try
             props = regionprops(gloveMask, 'Area', 'Perimeter', 'Solidity');
             if ~isempty(props)
                 gloveArea = props.Area;
                 glovePerimeter = props.Perimeter;
                 convexity = props.Solidity;
-                
+
                 if gloveArea > 0
                     perimeterAreaRatio = glovePerimeter / sqrt(gloveArea);
                 else
                     perimeterAreaRatio = 0;
                 end
-                
+
                 result.convexity = convexity;
                 result.perimeterAreaRatio = perimeterAreaRatio;
-                
+
+                % ===== NOT WORN DETECTION (independent) =====
+                % Triggers when boundary count is below threshold
+                if boundaryCount < notWornMinBoundaries
+                    result.notWorn = true;
+                end
+
+                % Calculate convex hull based convexity for improper roll detection
                 try
                     convexHull = bwconvhull(gloveMask);
                     hullArea = sum(convexHull(:));
@@ -530,7 +566,9 @@ function NitrileDefectDetectionGUI(varargin)
                 catch
                     convexity = 1;
                 end
-                
+
+                % ===== IMPROPER ROLL DETECTION (independent) =====
+                % Low convexity indicates irregular cuff shape
                 if convexity < improperConvexity
                     cuffMask = extractCuffRegion(gloveMask);
                     if sum(cuffMask(:)) >= 100 && sum(cuffMask(:)) <= 8000
@@ -546,7 +584,9 @@ function NitrileDefectDetectionGUI(varargin)
                         result.improperRoll = [result.improperRoll; defect];
                     end
                 end
-                
+
+                % ===== INSIDE OUT DETECTION (independent) =====
+                % High perimeter/area ratio indicates complex boundary
                 try
                     if ~isempty(boundaries)
                         glovePerimeter = size(boundaries{1}, 1);
