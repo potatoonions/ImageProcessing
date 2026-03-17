@@ -9,8 +9,8 @@ function member1_cloth_defect_analysis
 
 clc; clear;
 
-DATASET_DIR = fullfile(pwd, "gloves_dataset");
-GLOVE_TYPE = "cloth gloves";
+    DATASET_DIR = fullfile(fileparts(pwd), "logs", "gloves_dataset");
+    GLOVE_TYPE = "cloth gloves";
 DEFECT_TYPES = ["Normal", "Hole", "Snags", "Stain"];
 
 OUT_PROC = fullfile(pwd, "processed");
@@ -56,10 +56,14 @@ end
 
 fprintf("✓ Output directories created\n");
 
-fprintf("\n========== STEP 1: PREPROCESSING ==========\n");
-
-statsRows = {};
-detectionResults = {};
+    fprintf("\n========== STEP 1: PREPROCESSING ==========\n");
+    
+    statsRows = {};
+    detectionResults = {};
+    truePositives = 0;
+    falsePositives = 0;
+    trueNegatives = 0;
+    falseNegatives = 0;
 
 for defectType = DEFECT_TYPES
     folderPath = fullfile(DATASET_DIR, GLOVE_TYPE, defectType);
@@ -157,45 +161,93 @@ for defectType = DEFECT_TYPES
         holes = detectDefects(grayImg, gloveMask, HOLE_THRESHOLD, MORPH_RADIUS, ...
                               MIN_DEFECT_AREA, MAX_DEFECT_AREA, "dark");
         if ~isempty(holes)
+            isDefectType = 0;
+            if strcmpi(defectType, "Hole")
+                isDefectType = 1;
+            end
+            
             features = extractFeatures(grayImg, holes);
             for h = 1:numel(holes)
                 F = features(h);
+                if isDefectType
+                    truePositives = truePositives + 1;
+                else
+                    falsePositives = falsePositives + 1;
+                end
                 holeStats(end+1,:) = {char(defectType), baseName, h, F.area, F.perimeter, ...
                     F.solidity, F.eccentricity, F.meanIntensity}; %#ok<SAGROW>
             end
             exportVisualization(grayImg, gloveMask, holes, ...
                 fullfile(OUT_LOGS, "hole_detection", GLOVE_TYPE, defectType, ...
                     sprintf("%s_holes.png", baseName)));
+        else
+            if strcmpi(defectType, "Hole")
+                falseNegatives = falseNegatives + 1;
+            else
+                trueNegatives = trueNegatives + 1;
+            end
         end
         
         % ===== SNAG DETECTION =====
         snags = detectDefects(grayImg, gloveMask, SNAG_THRESHOLD, MORPH_RADIUS, ...
                               MIN_DEFECT_AREA, MAX_DEFECT_AREA, "medium");
         if ~isempty(snags)
+            isDefectType = 0;
+            if strcmpi(defectType, "Snags")
+                isDefectType = 1;
+            end
+            
             features = extractFeatures(grayImg, snags);
             for s = 1:numel(snags)
                 F = features(s);
+                if isDefectType
+                    truePositives = truePositives + 1;
+                else
+                    falsePositives = falsePositives + 1;
+                end
                 snagStats(end+1,:) = {char(defectType), baseName, s, F.area, F.perimeter, ...
                     F.solidity, F.eccentricity, F.meanIntensity}; %#ok<SAGROW>
             end
             exportVisualization(grayImg, gloveMask, snags, ...
                 fullfile(OUT_LOGS, "snag_detection", GLOVE_TYPE, defectType, ...
                     sprintf("%s_snags.png", baseName)));
+        else
+            if strcmpi(defectType, "Snags")
+                falseNegatives = falseNegatives + 1;
+            else
+                trueNegatives = trueNegatives + 1;
+            end
         end
         
         % ===== STAIN DETECTION =====
         stains = detectStains(grayImg, gloveMask, STAIN_THRESHOLD, MORPH_RADIUS, ...
                               MIN_DEFECT_AREA, MAX_DEFECT_AREA);
         if ~isempty(stains)
+            isDefectType = 0;
+            if strcmpi(defectType, "Stain")
+                isDefectType = 1;
+            end
+            
             features = extractFeatures(grayImg, stains);
             for st = 1:numel(stains)
                 F = features(st);
+                if isDefectType
+                    truePositives = truePositives + 1;
+                else
+                    falsePositives = falsePositives + 1;
+                end
                 stainStats(end+1,:) = {char(defectType), baseName, st, F.area, F.perimeter, ...
                     F.solidity, F.eccentricity, F.meanIntensity}; %#ok<SAGROW>
             end
             exportVisualization(grayImg, gloveMask, stains, ...
                 fullfile(OUT_LOGS, "stain_detection", GLOVE_TYPE, defectType, ...
                     sprintf("%s_stains.png", baseName)));
+        else
+            if strcmpi(defectType, "Stain")
+                falseNegatives = falseNegatives + 1;
+            else
+                trueNegatives = trueNegatives + 1;
+            end
         end
     end
 end
@@ -234,6 +286,56 @@ if ~isempty(stainStats)
          "solidity", "eccentricity", "mean_intensity"]);
     writetable(T_stains, fullfile(OUT_LOGS, "stain_detection_stats.csv"));
     fprintf("✓ Stain detection statistics saved\n");
+end
+
+fprintf("\n========== ACCURACY EVALUATION ==========\n");
+totalImages = truePositives + falsePositives + trueNegatives + falseNegatives;
+
+if totalImages > 0
+    accuracy = (truePositives + trueNegatives) / totalImages * 100;
+    if (truePositives + falsePositives) > 0
+        precision = truePositives / (truePositives + falsePositives) * 100;
+    else
+        precision = 0;
+    end
+    if (truePositives + falseNegatives) > 0
+        recall = truePositives / (truePositives + falseNegatives) * 100;
+    else
+        recall = 0;
+    end
+    if (precision + recall) > 0
+        f1Score = 2 * (precision * recall) / (precision + recall);
+    else
+        f1Score = 0;
+    end
+    
+    fprintf("Total Images: %d\n", totalImages);
+    fprintf("True Positives (TP): %d\n", truePositives);
+    fprintf("False Positives (FP): %d\n", falsePositives);
+    fprintf("True Negatives (TN): %d\n", trueNegatives);
+    fprintf("False Negatives (FN): %d\n", falseNegatives);
+    fprintf("\n");
+    fprintf("Overall Accuracy: %.2f%%\n", accuracy);
+    fprintf("Precision: %.2f%%\n", precision);
+    fprintf("Recall: %.2f%%\n", recall);
+    fprintf("F1-Score: %.2f%%\n", f1Score);
+    
+    accuracyFile = fullfile(OUT_LOGS, "accuracy_summary.csv");
+    T_accuracy = table(totalImages, truePositives, falsePositives, trueNegatives, falseNegatives, ...
+                 accuracy, precision, recall, f1Score, ...
+                 'VariableNames', ["total_images", "true_positives", "false_positives", ...
+                     "true_negatives", "false_negatives", "accuracy_pct", ...
+                     "precision_pct", "recall_pct", "f1_score"]);
+    writetable(T_accuracy, accuracyFile);
+    fprintf("\n✓ Accuracy summary saved to: %s\n", accuracyFile);
+    
+    if accuracy >= 90
+        fprintf("\n🎉 Target accuracy achieved: %.2f%%\n", accuracy);
+    else
+        fprintf("\n⚠ Accuracy below target: %.2f%% (target: 90%%)\n", accuracy);
+    end
+else
+    fprintf("⚠ No images processed, skipping accuracy calculation\n");
 end
 
 fprintf("\n========== PIPELINE COMPLETE ==========\n");

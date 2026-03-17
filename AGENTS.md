@@ -38,7 +38,6 @@ Develop a Glove Defect Detection (GDD) system that:
   - glove type: nitrile
   - defect: inside out, improper roll, not worn
    - dataset: logs/gloves_dataset/Nitrile gloves/ (available)
-     - Normal: 663 images
      - inside out: 6 images
      - improper roll: 5 images
      - not worn: 111 images

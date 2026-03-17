@@ -11,7 +11,6 @@ nitrile_gloves_classification/
 logs/
 └── gloves_dataset/
     └── Nitrile gloves/                  # Dataset (uploaded)
-        ├── Normal/
         ├── inside out/
         ├── improper roll/
         └── not worn/
@@ -62,9 +61,7 @@ matlab -batch "cd nitrile_gloves_classification; addpath(pwd); member3_nitrile_d
 **Metrics calculated:**
 - **True Positives (TP)**: Correctly detected defects
 - **False Positives (FP)**: Incorrectly detected defects
-- **True Negatives (TN)**: Correctly detected normal
 - **False Negatives (FN)**: Missed defects
-- **Accuracy**: (TP + TN) / Total
 - **Precision**: TP / (TP + FP)
 - **Recall**: TP / (TP + FN)
 - **F1-Score**: 2 × (Precision × Recall) / (Precision + Recall)
